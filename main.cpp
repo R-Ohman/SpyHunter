@@ -15,16 +15,12 @@
 extern "C" {
 #include"./SDL2-2.0.10/include/SDL.h"
 #include"./SDL2-2.0.10/include/SDL_main.h"
-	// #include"./SDL2_image-2.0.5/SDL_image.h"
 }
-
 
 #define SCREEN_WIDTH	960
 #define SCREEN_HEIGHT	720
 
 
-// narysowanie napisu txt na powierzchni screen, zaczynaj¹c od punktu (x, y)
-// charset to bitmapa 128x128 zawieraj¹ca znaki
 // draw a text txt on surface screen, starting from the point (x, y)
 // charset is a 128x128 bitmap containing character images
 void DrawString(SDL_Surface* screen, int x, int y, const char* text,
@@ -85,8 +81,6 @@ void NewGame(struct Game* game) {
 };
 
 
-// narysowanie na ekranie screen powierzchni sprite w punkcie (x, y)
-// (x, y) to punkt œrodka obrazka sprite na ekranie
 // draw a surface sprite on a surface screen in point (x, y)
 // (x, y) is the center of sprite on screen
 void DrawSurface(SDL_Surface* screen, SDL_Surface* sprite, int x, int y) {
@@ -131,7 +125,6 @@ void inArrayDeltaX(int* horizontal) {
 }
 
 
-// rysowanie pojedynczego pixela
 // draw a single pixel
 void DrawPixel(SDL_Surface* surface, int x, int y, Uint32 color) {
 	if (inArray(x, y)) {
@@ -142,8 +135,6 @@ void DrawPixel(SDL_Surface* surface, int x, int y, Uint32 color) {
 };
 
 
-// rysowanie linii o d³ugoœci l w pionie (gdy dx = 0, dy = 1) 
-// b¹dŸ poziomie (gdy dx = 1, dy = 0)
 // draw a vertical (when dx = 0, dy = 1) or horizontal (when dx = 1, dy = 0) line
 void DrawLine(SDL_Surface* screen, int x, int y, int l, int dx, int dy, Uint32 color) {
 	for (int i = 0; i < l; i++) {
@@ -186,7 +177,6 @@ bool touchObject(struct Game* game, CarInfo* object) {
 }
 
 
-// rysowanie prostok¹ta o d³ugoœci boków l i k
 // draw a rectangle of size l by k
 void DrawRectangle(SDL_Surface* screen, int x, int y, int l, int k,
 	Uint32 outlineColor, Uint32 fillColor) {
@@ -242,7 +232,6 @@ extern "C"
 int main(int argc, char** argv) {
 	int t1, t2, quit, frames, rc;
 	double delta, fpsTimer, fps;
-	// SDL_Texture* playerTex;
 	SDL_Event event;
 	SDL_Surface* screen, * charset;
 	SDL_Surface* player;
@@ -252,16 +241,12 @@ int main(int argc, char** argv) {
 	struct Game game;
 	struct CarInfo cars[5] = { NULL };
 
-	// SDL_Surface* tmpSurface = IMG_Load("assets/car.png");
-	// playerTex = SDL_CreateTextureFromSurface(renderer, tmpSurface);
-	// SDL_FreeSurface(tmpSurface);
-
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
 		printf("SDL_Init error: %s\n", SDL_GetError());
 		return 1;
 	}
 
-	// tryb pe³noekranowy / fullscreen mode
+	// fullscreen mode
 	rc = SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0,
 		&window, &renderer);
 	if (rc != 0) {
@@ -418,8 +403,6 @@ int main(int argc, char** argv) {
 				}
 			}
 		}
-
-		// draw player's car
 		DrawSurface(screen, player, game.car.coord.x, game.car.coord.y);
 
 		fpsTimer += delta;
@@ -428,9 +411,8 @@ int main(int argc, char** argv) {
 			frames = 0;
 			fpsTimer -= 0.5;
 		};
-		// tekst informacyjny / info text
+		// info text
 		DrawRectangle(screen, 4, 4, SCREEN_WIDTH - 8, 36, czerwony, niebieski);
-		//            "template for the second project, elapsed time = %.1lf s  %.0lf frames / s"
 		sprintf(text, "Ruslan Rabadanov 196634");
 		DrawString(screen, screen->w / 2 - strlen(text) * 8 / 2, 10, text, charset);
 		sprintf(text, "Czas trwania = %.1lf s  %.0lf klatek / s\tScore: %.0f", game.time, fps, game.score);
@@ -441,18 +423,15 @@ int main(int argc, char** argv) {
 
 		sprintf(text, "N - nowa gra");
 		DrawString(screen, screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10, text, charset);
-		//	      "Esc - exit, \030 - faster, \031 - slower"
 		sprintf(text, "\030/\031 - przyspieszenie/zwolnienie");
 		DrawString(screen, screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 60, text, charset);
-
-		// SDL_UpdateTexture(playerTex, NULL, screen->pixels, screen->pitch);
+		
 		SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
 		SDL_RenderClear(renderer);
-		// SDL_RenderCopy(renderer, playerTex, NULL, NULL);
 		SDL_RenderCopy(renderer, scrtex, NULL, NULL);
 		SDL_RenderPresent(renderer);
 
-		// obs³uga zdarzeñ (o ile jakieœ zasz³y) / handling of events (if there were any)
+		// handling of events (if there were any)
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_KEYDOWN:
@@ -475,7 +454,7 @@ int main(int argc, char** argv) {
 		frames++;
 	};
 
-	// zwolnienie powierzchni / freeing all surfaces
+	// freeing all surfaces
 	SDL_FreeSurface(charset);
 	SDL_FreeSurface(screen);
 	SDL_DestroyTexture(scrtex);
