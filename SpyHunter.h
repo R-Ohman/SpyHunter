@@ -93,3 +93,5 @@ void DrawRoadRectangle(SDL_Surface* screen, int y);
 
 // Retern string - path to the BMP image
 char* randomCar();
+
+bool isFreePlace(struct CarInfo* car, struct CarInfo* cars);

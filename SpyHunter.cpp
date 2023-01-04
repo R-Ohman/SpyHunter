@@ -103,10 +103,8 @@ void DrawLine(SDL_Surface* screen, int x, int y, int l, int dx, int dy, Uint32 c
 
 // x,y - координата на периметре машины; x2, y2 - центр объекта
 bool numbersInArray(int x, int y, CarInfo* object) {
-	int x2 = object->coord.x;
-	int y2 = object->coord.y;
-	x2 = x2 - object->car->w / 2;
-	y2 = y2 - object->car->h / 2;
+	int x2 = object->coord.x - object->car->w / 2;
+	int y2 = object->coord.y - object->car->h / 2;
 	if (x >= x2 && y >= y2 && x <= x2 + object->car->w && y <= y2 + object->car->h) {
 		return true;
 	}
@@ -178,4 +176,20 @@ char* randomCar() {
 	case 5:
 		return "./assets/car_red.bmp";
 	}
+}
+
+
+bool isFreePlace(struct CarInfo* car, struct CarInfo* cars) {
+	int x1 = car->coord.x + car->car->w / 2;
+	int y = car->coord.y + car->car->h / 2;
+	int x2 = x1 - car->car->w;
+	for (int i = 0; i < 5; i++) {
+		// Если попал на свою же машину
+		if (cars[i].coord.y == car->coord.y || cars[i].coord.x == 0) continue;
+		// проверяю нижнюю левую и нижнюю правую точки зареспавненной машины
+		if (numbersInArray(x1, y, &cars[i]) || numbersInArray(x2, y, &cars[i])) {
+			return false;
+		}
+	}
+	return true;
 }
