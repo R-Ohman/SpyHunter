@@ -127,7 +127,8 @@ int main(int argc, char** argv) {
 
 		for (auto& car : cars) {
 			if (car.coord.x != 0) {
-				car.coord.y += speed_coef * delta * 100;
+				// ≈сли уничтоженное, то слетает с дороги быстрее
+				car.coord.y += speed_coef * delta * (isDestroyed(&car) ? 500 : 100);
 			}
 		}
 
@@ -152,7 +153,6 @@ int main(int argc, char** argv) {
 		// Create new car if needed (every X distance)
 		if (int(game.distance * 10000) % 181 == 0) {
 			bool flag = true;
-			printf("\ngame.distance*100 = %f\n", game.distance * 100);
 			for (auto& car : cars) {
 				if (car.coord.x == 0 && flag) {
 					char* car_path = randomCar();
@@ -168,8 +168,7 @@ int main(int argc, char** argv) {
 					car.coord.x = rand() % (SCREEN_WIDTH / 3) + SCREEN_WIDTH / 3;
 					do {
 						car.coord.x = rand() % (SCREEN_WIDTH / 3) + SCREEN_WIDTH / 3;
-					} while (!isFreePlace(&car, cars)); // isFreePlace(&car, cars)
-					printf("car_path = %s\ncar.coord.x = %d\tcar.coord.y = %d\ncar.isEnemy = %d\n", car_path, car.coord.x, car.coord.y, car.isEnemy);
+					} while (!isFreePlace(&car, cars, -1) || !isFreePlace(&car, cars, 1)); // isFreePlace(&car, cars)
 					flag = false;
 					break;
 				}
@@ -182,7 +181,7 @@ int main(int argc, char** argv) {
 
 		for (auto& car : cars) {
 			if (car.coord.x != 0) {
-				if (touchObject(&game, &car)) {
+				if (touchObject(&game, &car, delta, cars)) {
 					NewGame(&game);
 				}
 				else {

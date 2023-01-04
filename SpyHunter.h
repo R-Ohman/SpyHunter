@@ -77,7 +77,7 @@ bool numbersInArray(int x, int y, CarInfo* object);
 
 
 // Проверка для пикселей по периметру машины, находится ли позиция в другом объекте.
-bool touchObject(struct Game* game, CarInfo* object);
+bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, CarInfo *cars);
 
 
 // draw a rectangle of size l by k
@@ -88,10 +88,14 @@ void DrawRectangle(SDL_Surface* screen, int x, int y, int l, int k,
 void DrawDest(SDL_Surface* screen);
 
 
+bool isDestroyed(struct CarInfo* car);
+
+
 void DrawRoadRectangle(SDL_Surface* screen, int y);
 
 
 // Retern string - path to the BMP image
 char* randomCar();
 
-bool isFreePlace(struct CarInfo* car, struct CarInfo* cars);
+
+bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn);

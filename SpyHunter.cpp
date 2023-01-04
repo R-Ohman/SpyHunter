@@ -101,7 +101,7 @@ void DrawLine(SDL_Surface* screen, int x, int y, int l, int dx, int dy, Uint32 c
 };
 
 
-// x,y - координата на периметре машины; x2, y2 - центр объекта
+// x,y - координата на периметре машины; x2, y2 - верхняя левая точка объекта
 bool numbersInArray(int x, int y, CarInfo* object) {
 	int x2 = object->coord.x - object->car->w / 2;
 	int y2 = object->coord.y - object->car->h / 2;
@@ -113,19 +113,38 @@ bool numbersInArray(int x, int y, CarInfo* object) {
 
 
 // Проверка для пикселей по периметру машины, находится ли позиция в другом объекте.
-bool touchObject(struct Game* game, CarInfo* object) {
+bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, struct CarInfo *cars) {
 	int x1 = game->car.coord.x;
 	int y1 = game->car.coord.y;
 	int x2 = object->coord.x;
 	int y2 = object->coord.y;
+	bool flag = true;
 
-	for (int i = -object->car->h / 2; i < object->car->h / 2; i++) {
+	for (int i = -object->car->h / 2 + 1; i < object->car->h / 2; i++) {
 		if (numbersInArray(x1 - object->car->w / 2, y1 + i, object) ||
-			numbersInArray(x1 + object->car->w / 2, y1 + i, object)) return true;
+			numbersInArray(x1 + object->car->w / 2, y1 + i, object)) {
+			if (isFreePlace(object, cars, game->car.turn)) {
+				object->coord.x += game->car.turn * deltaTime * 200;
+				if (object->coord.x < SCREEN_WIDTH / 3 - object->car->w ||
+					object->coord.x > 2 * SCREEN_WIDTH / 3 + object->car->w)
+				{
+					game->score += 1000;
+					printf("+1000 - %d\n", object->coord.x);
+					object->car = SDL_LoadBMP("./assets/car_destroyed.bmp");
+				}
+			}
+			else {
+				game->car.coord.x -= game->car.turn * deltaTime * 200;
+				flag = false;
+				break;
+			}
+		}
 	}
-	for (int i = -object->car->w / 2; i < object->car->w / 2; i++) {
-		if (numbersInArray(x1 + i, y1 - object->car->h / 2, object) ||
-			numbersInArray(x1 + i, y1 + object->car->h / 2, object)) return true;
+	if (flag) {
+		for (int i = -object->car->w / 2 + 1; i < object->car->w / 2 - 1; i++) {
+			if (numbersInArray(x1 + i, y1 - object->car->h / 2, object) ||
+				numbersInArray(x1 + i, y1 + object->car->h / 2, object)) return true;
+		}
 	}
 	return false;
 }
@@ -161,6 +180,15 @@ void DrawRoadRectangle(SDL_Surface* screen, int y) {
 };
 
 
+bool isDestroyed(struct CarInfo* car) {
+	if (car->car == SDL_LoadBMP("./assets/car_destroyed.bmp")
+		|| car->coord.x <= SCREEN_WIDTH / 3 - car->car->w / 2 || car->coord.x >= 2 * SCREEN_WIDTH / 3 + car->car->w / 2) {
+		return true;
+	}
+	return false;
+}
+
+
 // Retern string - path to the BMP image
 char* randomCar() {
 	int number = rand() % 5 + 1;
@@ -179,15 +207,22 @@ char* randomCar() {
 }
 
 
-bool isFreePlace(struct CarInfo* car, struct CarInfo* cars) {
-	int x1 = car->coord.x + car->car->w / 2;
-	int y = car->coord.y + car->car->h / 2;
-	int x2 = x1 - car->car->w;
+bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn) {
+	// turn = -1 : упирается справа, 1 : упирается слева
+	int x, y, y2;
+	y = car->coord.y + car->car->h / 2;
+	y2 = y - car->car->h;
+	if (turn == 1) {
+		x = car->coord.x + car->car->w / 2;
+	}
+	else {
+		x = car->coord.x - car->car->w / 2;
+	}
 	for (int i = 0; i < 5; i++) {
 		// Если попал на свою же машину
 		if (cars[i].coord.y == car->coord.y || cars[i].coord.x == 0) continue;
 		// проверяю нижнюю левую и нижнюю правую точки зареспавненной машины
-		if (numbersInArray(x1, y, &cars[i]) || numbersInArray(x2, y, &cars[i])) {
+		if (numbersInArray(x, y, &cars[i]) || numbersInArray(x, y2, &cars[i])) {
 			return false;
 		}
 	}
