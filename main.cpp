@@ -2,10 +2,10 @@
 #include "SpyHunter.h"
 
 /*
-ПЛАН НА 4.01
+ПЛАН НА 5.01
 - структуризировать программу, разбить на функции, убрать все ненужное
-- поменять период спавна автомобилей, сделать проверку налазит ли авто на другое авто
-- сделать возможность сбивать автомобиль с дороги
+- пофиксить проверку налазит ли авто на другое авто (при спавне и при атаке игрока)
+- сделать возможность стрелять
 */
 
 
@@ -104,14 +104,19 @@ int main(int argc, char** argv) {
 		t1 = t2;
 		int speed_coef = 1;
 		game.time += delta;
+		if (game.freeze > 0) game.freeze -= delta;
+		if (game.freeze < 0) game.freeze = 0;
+
+		if (game.killMesTime > 0) game.killMesTime -= delta;
+		
 		if (game.car.speed != 0) {
 			speed_coef = game.car.speed > 0 ? game.car.speed : (-3 * game.car.speed);
 			game.distance += speed_coef * delta;
-			game.score += speed_coef * game.distance * delta / 2;
+			if (!game.freeze) game.score += speed_coef * game.distance * delta / 2;
 		}
 		else {
 			game.distance += delta;
-			game.score += game.distance * delta / 2;
+			if (!game.freeze) game.score += game.distance * delta / 2;
 		}
 
 		if (game.car.speed * delta > 0) {
@@ -121,14 +126,20 @@ int main(int argc, char** argv) {
 			game.car.coord.y += game.car.speed * delta * 200;
 		}
 
-		game.car.coord.x += game.car.turn * delta * 200;
+		game.car.coord.x += game.car.turn * delta * 300;
 		inArrayDeltaX(&game.car.coord.x);
 		inArrayDeltaY(&game.car.coord.y);
 
 		for (auto& car : cars) {
 			if (car.coord.x != 0) {
 				// Если уничтоженное, то слетает с дороги быстрее
-				car.coord.y += speed_coef * delta * (isDestroyed(&car) ? 500 : 100);
+				int Ydelta = speed_coef * delta * (isDestroyed(&car) ? 500 : 100);
+				if (car.isEnemy && canAttack(&car, &game)) {
+					car.coord.y += Ydelta * 1.3 * canAttack(&car, &game);
+				}
+				else {
+					car.coord.y += Ydelta;
+				}
 			}
 		}
 
@@ -203,6 +214,15 @@ int main(int argc, char** argv) {
 		DrawString(sdl.screen, sdl.screen->w / 2 - strlen(text) * 8 / 2, 10, text, sdl.charset);
 		sprintf(text, "Czas trwania = %.1lf s  %.0lf klatek / s\tScore: %.0f", game.time, fps, game.score);
 		DrawString(sdl.screen, sdl.screen->w / 2 - strlen(text) * 8 / 2, 26, text, sdl.charset);
+		
+		if (game.freeze) {
+			sprintf(text, "Score is freezed on %.1f sec", game.freeze);
+			DrawString(sdl.screen, sdl.screen->w  - strlen(text) * 8, SCREEN_HEIGHT/2, text, sdl.charset);
+		}
+		else if (game.killMesTime > 0) {
+			sprintf(text, "KILL! You get 1000 points!");
+			DrawString(sdl.screen, sdl.screen->w - strlen(text) * 8, SCREEN_HEIGHT / 2, text, sdl.charset);
+		}
 
 		sprintf(text, "Esc - wyjscie");
 		DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 30, text, sdl.charset);

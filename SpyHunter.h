@@ -21,7 +21,9 @@ typedef struct Game {
 		int turn = 0;
 	} car;
 	double time = 0;
+	double freeze = 0;
 	double distance = 0;
+	double killMesTime = 0;
 	double score = distance * distance * time;
 };
 
@@ -99,3 +101,6 @@ char* randomCar();
 
 
 bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn);
+
+
+int canAttack(struct CarInfo* car, struct Game* game);

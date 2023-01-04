@@ -128,13 +128,24 @@ bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, str
 				if (object->coord.x < SCREEN_WIDTH / 3 - object->car->w ||
 					object->coord.x > 2 * SCREEN_WIDTH / 3 + object->car->w)
 				{
-					game->score += 1000;
-					printf("+1000 - %d\n", object->coord.x);
 					object->car = SDL_LoadBMP("./assets/car_destroyed.bmp");
+					if (object->isEnemy) {
+						if (!game->freeze) {
+							game->score += 1000;
+							game->killMesTime = 2;
+						}
+					}
+					else {
+						printf("-1000 - %d\n", object->coord.x);
+						game->freeze += 3;
+					}
 				}
 			}
 			else {
-				game->car.coord.x -= game->car.turn * deltaTime * 200;
+				printf("Delta: %f\n", game->car.turn * deltaTime * 200);
+				//game->car.coord.x -= game->car.turn * deltaTime * 200;
+				// Проехать нельзя из-за преграды в виде авто, значит игрок сдвигается обратно
+				game->car.coord.x -= game->car.turn * 3;
 				flag = false;
 				break;
 			}
@@ -182,7 +193,7 @@ void DrawRoadRectangle(SDL_Surface* screen, int y) {
 
 bool isDestroyed(struct CarInfo* car) {
 	if (car->car == SDL_LoadBMP("./assets/car_destroyed.bmp")
-		|| car->coord.x <= SCREEN_WIDTH / 3 - car->car->w / 2 || car->coord.x >= 2 * SCREEN_WIDTH / 3 + car->car->w / 2) {
+		|| car->coord.x < SCREEN_WIDTH / 3 - car->car->w || car->coord.x > 2 * SCREEN_WIDTH / 3 + car->car->w) {
 		return true;
 	}
 	return false;
@@ -227,4 +238,21 @@ bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn) {
 		}
 	}
 	return true;
+}
+
+
+// can attack if player is above or under the enemy car
+// 2 - car is above, 0 - can't attack, -1 - car is under the enemy
+int canAttack (struct CarInfo* car, struct Game* game) {
+	int enemyLeftSide = car->coord.x - car->car->w / 2;
+	int enemyRightSide = enemyLeftSide + car->car->w;
+	int carLeftSide = game->car.coord.x - car->car->w / 2 + 10;
+	int carRightSide = carLeftSide + car->car->w - 20;
+
+	if (enemyLeftSide > carLeftSide && enemyLeftSide < carRightSide ||
+		enemyRightSide > carRightSide && enemyRightSide < carRightSide) {
+		return  (car->coord.y < game->car.coord.y) ? 2 : -1;
+	}
+	
+	return 0;
 }
