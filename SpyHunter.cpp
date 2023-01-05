@@ -52,7 +52,6 @@ void DrawSurface(SDL_Surface* screen, SDL_Surface* sprite, int x, int y) {
 };
 
 
-
 // check if X and Y coordinates are inside a screen
 bool inArray(int x, int y) {
 	if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT) {
@@ -108,6 +107,7 @@ void DrawLine(SDL_Surface* screen, int x, int y, int l, int dx, int dy, Uint32 c
 bool numbersInArray(int x, int y, CarInfo* object) {
 	int x2 = object->coord.x - object->car->w / 2;
 	int y2 = object->coord.y - object->car->h / 2;
+	// warn +1 -1
 	if (x >= x2 && y >= y2 && x <= x2 + object->car->w && y <= y2 + object->car->h) {
 		return true;
 	}
@@ -148,7 +148,7 @@ bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, str
 			else {
 				//game->car.coord.x -= game->car.turn * deltaTime * 200;
 				// Проехать нельзя из-за преграды в виде авто, значит игрок сдвигается обратно
-				game->car.coord.x -= game->car.turn * 5;
+				game->car.coord.x -= game->car.turn * 6; // WARN
 				// Если могу подвинуть авто, скорость - 200, иначе возвращаюсь на позицию назад где скорость 300
 				flag = false;
 				break;
@@ -235,9 +235,11 @@ bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn) {
 	}
 	for (int i = 0; i < 5; i++) {
 		// Если попал на свою же машину
-		if (cars[i].coord.y == car->coord.y || cars[i].coord.x == 0) continue;
+		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x || cars[i].coord.x == 0) continue;
 		// проверяю нижнюю левую и нижнюю правую точки зареспавненной машины
 		if (numbersInArray(x, y, &cars[i]) || numbersInArray(x, y2, &cars[i])) {
+			// WARN
+			car->coord.x -= turn;
 			return false;
 		}
 	}
@@ -246,7 +248,8 @@ bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn) {
 
 
 bool inFault(int num1, int num2, int fault) {
-	return (num1 - num2 > -fault && num1 - num2 < fault) ? true : false;
+	int num = (num1 - num2 > 0) ? num1 - num2 : num2 - num1;
+	return (num < fault) ? true : false;
 }
 
 
@@ -258,7 +261,9 @@ bool canRide(struct CarInfo* car, struct CarInfo* cars) {
 		// Если попал на свою же машину
 		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x || cars[i].coord.x == 0) continue;
 		// проверяю нвходится ли в радиусе другое авто
-		if (inFault (cars[i].coord.y, y, car->car->h + 1) && inFault(cars[i].coord.x, car->coord.x, car->car->w + 1))
+		// WARN -2 -> -1 | Когда машины труться, чтобы могли идти в атаку
+		// WARN +2 | Когда игра атакуют 2 машины в ряд, чтобы они не терлись
+		if (inFault(cars[i].coord.y, y, car->car->h + 2) && inFault(cars[i].coord.x, car->coord.x, car->car->w - 2))
 		{
 			return false;
 		}
@@ -270,16 +275,20 @@ bool canRide(struct CarInfo* car, struct CarInfo* cars) {
 // can attack if player is above or under the enemy car
 // 2 - car is above, 0 - can't attack, -1 - car is under the enemy
 int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars) {
-	if (game->car.coord.x - car->coord.x < 31 && game->car.coord.x - car->coord.x > -31) {
-		if (game->car.coord.y - car->coord.y < SCREEN_HEIGHT && game->car.coord.y - car->coord.y > car->car->h + 30) {
+	if (inFault(game->car.coord.x, car->coord.x, 31)) {
+		if (inFault(game->car.coord.y, car->coord.y, SCREEN_HEIGHT) && game->car.coord.y - car->coord.y > car->car->h + 30) {
+			// При атаке сверху тормозит за 30 пикселей от меня
 			if (!canRide(car, cars)) {
+				// += 1
 				car->coord.y -= 3;
 				return 0;
 			}
 			return 2;
 		}
-		else if (game->car.coord.y - car->coord.y > -SCREEN_HEIGHT && game->car.coord.y - car->coord.y < -car->car->h - 10) {
+		else if (inFault(game->car.coord.y, car->coord.y, SCREEN_HEIGHT) && game->car.coord.y - car->coord.y < -car->car->h - 10) {
+			// При атаке тормозит за 10 пикселей от меня
 			if (!canRide(car, cars)) {
+				// -= 2
 				car->coord.y += 3;
 				return 0;
 			}

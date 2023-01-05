@@ -1,27 +1,31 @@
 #define _USE_MATH_DEFINES
 #include "SpyHunter.h"
+#define SECONDS_BETWEEN_REFRESH 0.5
+#define REFRESH_RATE 1/SECONDS_BETWEEN_REFRESH
 
 /*
 ПЛАН НА 5.01
 - структуризировать программу, разбить на функции, убрать все ненужное
-- пофиксить проверку налазит ли авто на другое авто (при спавне и при атаке игрока)
 - сделать возможность стрелять
+
+БАГИ:
+- 
 */
 
 
 int main(int argc, char** argv) {
-	int t1, t2, quit, frames, rc;
-	double delta, fpsTimer, fps;
+	int t1 = SDL_GetTicks(), t2, quit = 0, frames = 0, rc;
+	double delta, fpsTimer = 0, fps = 0;
 	
 	struct {
 		SDL_Event event;
-		SDL_Surface* screen, * charset;
+		SDL_Surface* screen, * charset = SDL_LoadBMP("./cs8x8.bmp");
 		SDL_Texture* scrtex;
 		SDL_Window* window;
 		SDL_Renderer* renderer;
 	} sdl;
 	
-	SDL_Surface* player;
+	SDL_Surface* player = SDL_LoadBMP("./assets/car.bmp");
 	struct Game game;
 	struct CarInfo cars[5] = { NULL };
 
@@ -56,8 +60,6 @@ int main(int argc, char** argv) {
 	// wyі№czenie widocznoњci kursora myszy
 	SDL_ShowCursor(SDL_DISABLE);
 
-	// wczytanie obrazka cs8x8.bmp
-	sdl.charset = SDL_LoadBMP("./cs8x8.bmp");
 	if (sdl.charset == NULL) {
 		printf("SDL_LoadBMP(cs8x8.bmp) error: %s\n", SDL_GetError());
 		SDL_FreeSurface(sdl.screen);
@@ -69,8 +71,6 @@ int main(int argc, char** argv) {
 		return 1;
 	};
 	SDL_SetColorKey(sdl.charset, true, 0x000000);
-
-	player = SDL_LoadBMP("./assets/car.bmp");
 
 	if (player == NULL) {
 		printf("SDL_LoadBMP(eti.bmp) error: %s\n", SDL_GetError());
@@ -89,13 +89,6 @@ int main(int argc, char** argv) {
 	int zielony = SDL_MapRGB(sdl.screen->format, 0x00, 0xFF, 0x00);
 	int czerwony = SDL_MapRGB(sdl.screen->format, 0xFF, 0x00, 0x00);
 	int niebieski = SDL_MapRGB(sdl.screen->format, 0x11, 0x11, 0xCC);
-
-	t1 = SDL_GetTicks();
-
-	frames = 0;
-	fpsTimer = 0;
-	fps = 0;
-	quit = 0;
 	int roadPos = SCREEN_HEIGHT - 100;
 
 	while (!quit) {
@@ -135,7 +128,9 @@ int main(int argc, char** argv) {
 				// Если уничтоженное, то слетает с дороги быстрее
 				int Ydelta = delta * (isDestroyed(&car) ? 500 : 100); // * speed_coef;
 				if (car.isEnemy && canAttack(&car, &game, cars) != 100) {
-					car.coord.y += Ydelta * 1.3 * canAttack(&car, &game, cars);
+					double a = Ydelta * 1.3 * canAttack(&car, &game, cars);
+					car.coord.y += a;
+					printf("canAttack, +%d\n", (int)a);
 				}
 				else {
 					car.coord.y += Ydelta;
@@ -203,10 +198,10 @@ int main(int argc, char** argv) {
 		DrawSurface(sdl.screen, player, game.car.coord.x, game.car.coord.y);
 
 		fpsTimer += delta;
-		if (fpsTimer > 0.5) {
-			fps = frames * 2;
+		if (fpsTimer > SECONDS_BETWEEN_REFRESH) {
+			fps = frames * REFRESH_RATE;
 			frames = 0;
-			fpsTimer -= 0.5;
+			fpsTimer -= SECONDS_BETWEEN_REFRESH;
 		};
 		// info text
 		DrawRectangle(sdl.screen, 4, 4, SCREEN_WIDTH - 8, 36, czerwony, niebieski);
