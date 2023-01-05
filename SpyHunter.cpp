@@ -26,7 +26,7 @@ void DrawString(SDL_Surface* screen, int x, int y, const char* text,
 };
 
 
-void NewGame(struct Game* game) {
+void NewGame(struct Game* game, CarInfo * cars) {
 	game->time = 0;
 	game->score = 0;
 	game->distance = 0;
@@ -34,6 +34,9 @@ void NewGame(struct Game* game) {
 	game->car.coord.y = SCREEN_HEIGHT * 2 / 3;
 	game->car.speed = 0;
 	game->car.turn = 0;
+	for (int i = 0; i < 5; i++) {
+		cars[i].coord.x = 0;
+	}
 };
 
 
@@ -124,7 +127,8 @@ bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, str
 		if (numbersInArray(x1 - object->car->w / 2, y1 + i, object) ||
 			numbersInArray(x1 + object->car->w / 2, y1 + i, object)) {
 			if (isFreePlace(object, cars, game->car.turn)) {
-				object->coord.x += game->car.turn * deltaTime * 200;
+				object->coord.x += game->car.turn * deltaTime * 300;
+				printf("Delta: %f\n", game->car.turn * deltaTime * 300);
 				if (object->coord.x < SCREEN_WIDTH / 3 - object->car->w ||
 					object->coord.x > 2 * SCREEN_WIDTH / 3 + object->car->w)
 				{
@@ -142,17 +146,17 @@ bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, str
 				}
 			}
 			else {
-				printf("Delta: %f\n", game->car.turn * deltaTime * 200);
 				//game->car.coord.x -= game->car.turn * deltaTime * 200;
 				// ѕроехать нельз€ из-за преграды в виде авто, значит игрок сдвигаетс€ обратно
-				game->car.coord.x -= game->car.turn * 3;
+				game->car.coord.x -= game->car.turn * 5;
+				// ≈сли могу подвинуть авто, скорость - 200, иначе возвращаюсь на позицию назад где скорость 300
 				flag = false;
 				break;
 			}
 		}
 	}
 	if (flag) {
-		for (int i = -object->car->w / 2 + 1; i < object->car->w / 2 - 1; i++) {
+		for (int i = -object->car->w / 2 + 3; i < object->car->w / 2 - 2; i++) {
 			if (numbersInArray(x1 + i, y1 - object->car->h / 2, object) ||
 				numbersInArray(x1 + i, y1 + object->car->h / 2, object)) return true;
 		}
@@ -241,18 +245,48 @@ bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn) {
 }
 
 
+bool inFault(int num1, int num2, int fault) {
+	return (num1 - num2 > -fault && num1 - num2 < fault) ? true : false;
+}
+
+
+// ѕроверка дл€ атакующей машины может ли она ехать
+bool canRide(struct CarInfo* car, struct CarInfo* cars) {
+	// turn = -1 : упираетс€ сверху, 1 : упираетс€ снизу
+	int y = car->coord.y;
+	for (int i = 0; i < 5; i++) {
+		// ≈сли попал на свою же машину
+		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x || cars[i].coord.x == 0) continue;
+		// провер€ю нвходитс€ ли в радиусе другое авто
+		if (inFault (cars[i].coord.y, y, car->car->h + 1) && inFault(cars[i].coord.x, car->coord.x, car->car->w + 1))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+
 // can attack if player is above or under the enemy car
 // 2 - car is above, 0 - can't attack, -1 - car is under the enemy
-int canAttack (struct CarInfo* car, struct Game* game) {
-	int enemyLeftSide = car->coord.x - car->car->w / 2;
-	int enemyRightSide = enemyLeftSide + car->car->w;
-	int carLeftSide = game->car.coord.x - car->car->w / 2 + 10;
-	int carRightSide = carLeftSide + car->car->w - 20;
-
-	if (enemyLeftSide > carLeftSide && enemyLeftSide < carRightSide ||
-		enemyRightSide > carRightSide && enemyRightSide < carRightSide) {
-		return  (car->coord.y < game->car.coord.y) ? 2 : -1;
+int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars) {
+	if (game->car.coord.x - car->coord.x < 31 && game->car.coord.x - car->coord.x > -31) {
+		if (game->car.coord.y - car->coord.y < SCREEN_HEIGHT && game->car.coord.y - car->coord.y > car->car->h + 30) {
+			if (!canRide(car, cars)) {
+				car->coord.y -= 3;
+				return 0;
+			}
+			return 2;
+		}
+		else if (game->car.coord.y - car->coord.y > -SCREEN_HEIGHT && game->car.coord.y - car->coord.y < -car->car->h - 10) {
+			if (!canRide(car, cars)) {
+				car->coord.y += 3;
+				return 0;
+			}
+			return -1;
+		}
+		//return  (car->coord.y < game->car.coord.y) ? 2 : -1;
 	}
 	
-	return 0;
+	return 100;
 }

@@ -45,7 +45,7 @@ void DrawString(SDL_Surface* screen, int x, int y, const char* text,
 	SDL_Surface* charset);
 
 
-void NewGame(struct Game* game);
+void NewGame(struct Game* game, CarInfo* cars);
 
 
 // draw a surface sprite on a surface screen in point (x, y)
@@ -103,4 +103,8 @@ char* randomCar();
 bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn);
 
 
-int canAttack(struct CarInfo* car, struct Game* game);
+int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars);
+
+bool canRide(struct CarInfo* car, struct CarInfo* cars);
+
+bool inFault(int num1, int num2, int fault);

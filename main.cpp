@@ -133,9 +133,9 @@ int main(int argc, char** argv) {
 		for (auto& car : cars) {
 			if (car.coord.x != 0) {
 				// ≈сли уничтоженное, то слетает с дороги быстрее
-				int Ydelta = speed_coef * delta * (isDestroyed(&car) ? 500 : 100);
-				if (car.isEnemy && canAttack(&car, &game)) {
-					car.coord.y += Ydelta * 1.3 * canAttack(&car, &game);
+				int Ydelta = delta * (isDestroyed(&car) ? 500 : 100); // * speed_coef;
+				if (car.isEnemy && canAttack(&car, &game, cars) != 100) {
+					car.coord.y += Ydelta * 1.3 * canAttack(&car, &game, cars);
 				}
 				else {
 					car.coord.y += Ydelta;
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
 		for (auto& car : cars) {
 			if (car.coord.x != 0) {
 				if (touchObject(&game, &car, delta, cars)) {
-					NewGame(&game);
+					NewGame(&game, cars);
 				}
 				else {
 					DrawSurface(sdl.screen, car.car, car.coord.x, car.coord.y);
@@ -242,7 +242,7 @@ int main(int argc, char** argv) {
 			switch (sdl.event.type) {
 			case SDL_KEYDOWN:
 				if (sdl.event.key.keysym.sym == SDLK_ESCAPE) quit = 1;
-				else if (sdl.event.key.keysym.sym == SDLK_n) NewGame(&game);
+				else if (sdl.event.key.keysym.sym == SDLK_n) NewGame(&game, cars);
 				else if (sdl.event.key.keysym.sym == SDLK_UP) game.car.speed = -1;
 				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.car.speed = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.car.turn = -1;
