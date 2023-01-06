@@ -145,3 +145,6 @@ void freeSurfaces(SDL sdl);
 
 
 void renderSurfaces(SDL* sdl);
+
+
+bool canGo(struct CarInfo* car, struct CarInfo* cars, int direction);

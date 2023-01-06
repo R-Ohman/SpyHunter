@@ -385,34 +385,62 @@ bool freeSpace(struct CarInfo* car, struct CarInfo* cars) {
 }
 
 
+bool canGo(struct CarInfo* car, struct CarInfo* cars, int direction) {
+	// direction: -1 -> вверх, 1 -> вниз
+	int deltaY;
+	
+	for (int i = 0; i < 5; i++) {
+		// Если попал на свою же машину
+		if (cars[i].coord.x == 0 || cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x ||
+			!inFault(cars[i].coord.x, car->coord.x, car->car->w)) continue;
+
+		// WARN
+		printf("\ncars[%d].coord.y = %d, car->coord.y = %d", i, cars[i].coord.y, car->coord.y);
+		if (direction == -1) deltaY = car->coord.y - cars[i].coord.y;
+		else deltaY = cars[i].coord.y - car->coord.y;
+		printf("\nBefore if (canGo()), deltaY = %d", deltaY);
+		if (deltaY > 0 && deltaY < car->car->h + 10) {
+			printf("\ncanGo return FALSE\n");
+			return false;
+		}
+	}
+	return true;
+}
+
+
 // can attack if player is above or under the enemy car
 // 2 - car is above, 0 - can't attack, -1 - car is under the enemy
 int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars) {
+	// Атакует если в одной полосе хотя бы половина машины
 	if (inFault(game->car.coord.x, car->coord.x, 31)) {
+		// CHANGE | SCREEN_HEIGHT/2
 		if (inFault(game->car.coord.y, car->coord.y, SCREEN_HEIGHT) && game->car.coord.y - car->coord.y > car->car->h + 30) {
 			// При атаке сверху тормозит за 30 пикселей от меня
-			if (!canRide(car, cars)) {
-				// += 1
-				car->coord.y -= 3;
-				printf("InFault -> Coord.y - 3\n");
-				return 0;
-			}
-			return 2;
+			//if (!canRide(car, cars)) {
+			//	// += 1
+			//	car->coord.y -= 3;
+			//	printf("InFault -> Coord.y - 3\n");
+			//	return 0;
+			//}
+			printf("TRY GO DOWN!\t");
+			if (canGo(car, cars, 1)) return 2;
+			printf("Can't go down (IF)\n");
 		}
 		else if (inFault(game->car.coord.y, car->coord.y, SCREEN_HEIGHT) && game->car.coord.y - car->coord.y < -car->car->h - 10) {
-			// При атаке тормозит за 10 пикселей от меня
-			if (!canRide(car, cars)) {
-				// -= 2
-				car->coord.y += 3;
-				printf("InFault -> Coord.y + 3\n");
-				return 0;
-			}
-			return -1;
+			// При атаке тормозит за 10 пикселей от меня CHANGE
+			//if (!canRide(car, cars)) {
+			//	// -= 2
+			//	car->coord.y += 3;
+			//	printf("InFault -> Coord.y + 3\n");
+			//	return 0;
+			//}
+			printf("TRY GO UP!\t");
+			if (canGo(car, cars, -1)) return -1;
+			printf("Can't go up (else if)\n");
 		}
 		//return  (car->coord.y < game->car.coord.y) ? 2 : -1;
 	}
-	
-	return 100;
+	return 0;
 }
 
 
@@ -420,12 +448,12 @@ void drawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 	for (int i = 0; i < 5; i++) {
 		if (cars[i].coord.x != 0) {
 			// Если уничтоженное, то слетает с дороги быстрее
+
 			cars[i].speed = isDestroyed(&cars[i]) ? 500 : 200;
 			// Если поставить != 0, то не будет наезжать на меня сверху вниз
-			if (cars[i].isEnemy && canAttack(&cars[i], game, cars) != 100) {
+			if (cars[i].isEnemy && canAttack(&cars[i], game, cars)) {
 				// canAttack определяет в какую сторону поедет актаковать
 				cars[i].coord.y += game->time.delta * cars[i].speed * canAttack(&cars[i], game, cars) > 0 ? 2  : -0.7;
-				printf("Attack cars[%d].coord.y = %d\n", i, cars[i].coord.y);
 			}
 			else {
 				cars[i].coord.y += game->time.delta * cars[i].speed;
