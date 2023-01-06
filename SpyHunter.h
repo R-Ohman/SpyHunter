@@ -14,20 +14,20 @@
 typedef struct Game {
 	struct Car {
 		struct Coord {
-			int x = SCREEN_WIDTH / 2;
-			int y = SCREEN_HEIGHT * 2 / 3;
+			int x;
+			int y;
 		} coord;
-		int speed = 0;
-		int turn = 0;
+		int speed;
+		int turn;
 	} car;
 	struct {
-		double startGame = SDL_GetTicks();
+		double startGame;
 		double total;
 		double delta;
 		double scoreFreeze;
 		double killMessage;
 	} time;
-	double totalDistance = 0;
+	double totalDistance;
 	double score;
 };
 
@@ -38,23 +38,22 @@ typedef struct CarInfo {
 		int x;
 		int y;
 	} coord;
-	double speed = 1;
+	double speed;
 	bool isEnemy;
 };
 
 typedef struct SDL {
 	SDL_Event event;
-	SDL_Surface* screen = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32,
-		0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-	SDL_Surface* charset = SDL_LoadBMP("./cs8x8.bmp");
-	SDL_Surface* player = SDL_LoadBMP("./assets/car.bmp");
+	SDL_Surface* screen;
+	SDL_Surface* charset;
+	SDL_Surface* player;
 	SDL_Texture* scrtex;
 	SDL_Window* window;
 	SDL_Renderer* renderer;
 };
 
 
-int initGame(SDL sdl);
+int initGame(SDL* sdl);
 
 
 // draw a text txt on surface screen, starting from the point (x, y)
@@ -77,11 +76,11 @@ bool inArray(int x, int y);
 
 
 // Check if vertical position is out of screen and do it in the range.
-void inArrayDeltaY(int* vertical);
+void fixCoordY(int* vertical);
 
 
 // Check ifhorizontal position is out of screen and do it in the range.
-void inArrayDeltaX(int* horizontal);
+void fixCoordX(int* horizontal);
 
 
 // draw a single pixel
@@ -105,7 +104,7 @@ void DrawRectangle(SDL_Surface* screen, int x, int y, int l, int k,
 	Uint32 outlineColor, Uint32 fillColor);
 
 
-void DrawDest(SDL_Surface* screen, int roadMarkingPos);
+void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos);
 
 
 bool isDestroyed(struct CarInfo* car);
@@ -127,6 +126,9 @@ int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars);
 bool canRide(struct CarInfo* car, struct CarInfo* cars);
 
 
+bool freeSpace(struct CarInfo* car, struct CarInfo* cars);
+
+
 bool inFault(int num1, int num2, int fault);
 
 
@@ -136,10 +138,10 @@ void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps);
 int modul(int num);
 
 
-void drawRandomCar(CarInfo* cars, Game game, SDL sdl);
+void drawRandomCar(CarInfo* cars, Game* game, SDL* sdl);
 
 
 void freeSurfaces(SDL sdl);
 
 
-void renderSurfaces(SDL sdl);
+void renderSurfaces(SDL* sdl);

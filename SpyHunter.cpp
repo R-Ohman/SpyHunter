@@ -1,46 +1,51 @@
 #include "SpyHunter.h"
 
 
-int initGame(SDL sdl) {
+int initGame(SDL* sdl) {
+	sdl->screen = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32,
+		0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+	sdl->charset = SDL_LoadBMP("./cs8x8.bmp");
+	sdl->player = SDL_LoadBMP("./assets/car.bmp");
+	
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
 		printf("SDL_Init error: %s\n", SDL_GetError());
 		return 1;
 	}
-	if (SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl.window, &sdl.renderer) != 0) {
+	if (SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer) != 0) {
 		SDL_Quit();
 		printf("SDL_CreateWindowAndRenderer error: %s\n", SDL_GetError());
 		return 1;
 	};
 
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	SDL_RenderSetLogicalSize(sdl.renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
-	SDL_SetRenderDrawColor(sdl.renderer, 0, 0, 0, 255);
+	SDL_RenderSetLogicalSize(sdl->renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+	SDL_SetRenderDrawColor(sdl->renderer, 0, 0, 0, 255);
 
-	SDL_SetWindowTitle(sdl.window, "Spy Hunter | Ruslan Rabadanov 196634");
-	sdl.scrtex = SDL_CreateTexture(sdl.renderer, SDL_PIXELFORMAT_ARGB8888,
+	SDL_SetWindowTitle(sdl->window, "Spy Hunter | Ruslan Rabadanov 196634");
+	sdl->scrtex = SDL_CreateTexture(sdl->renderer, SDL_PIXELFORMAT_ARGB8888,
 		SDL_TEXTUREACCESS_STREAMING,
 		SCREEN_WIDTH, SCREEN_HEIGHT);
 	SDL_ShowCursor(SDL_DISABLE);
 
-	if (sdl.charset == NULL) {
+	if (sdl->charset == NULL) {
 		printf("SDL_LoadBMP(cs8x8.bmp) error: %s\n", SDL_GetError());
-		SDL_FreeSurface(sdl.screen);
-		SDL_DestroyTexture(sdl.scrtex);
-		SDL_DestroyWindow(sdl.window);
-		SDL_DestroyRenderer(sdl.renderer);
+		SDL_FreeSurface(sdl->screen);
+		SDL_DestroyTexture(sdl->scrtex);
+		SDL_DestroyWindow(sdl->window);
+		SDL_DestroyRenderer(sdl->renderer);
 		SDL_Quit();
 		return 1;
 	};
-	SDL_SetColorKey(sdl.charset, true, 0x000000);
+	SDL_SetColorKey(sdl->charset, true, 0x000000);
 
-	if (sdl.player == NULL) {
+	if (sdl->player == NULL) {
 		printf("SDL_LoadBMP(eti.bmp) error: %s\n", SDL_GetError());
-		SDL_FreeSurface(sdl.charset);
-		SDL_FreeSurface(sdl.screen);
-		SDL_DestroyTexture(sdl.scrtex);
+		SDL_FreeSurface(sdl->charset);
+		SDL_FreeSurface(sdl->screen);
+		SDL_DestroyTexture(sdl->scrtex);
 		// SDL_DestroyTexture(playerTex);
-		SDL_DestroyWindow(sdl.window);
-		SDL_DestroyRenderer(sdl.renderer);
+		SDL_DestroyWindow(sdl->window);
+		SDL_DestroyRenderer(sdl->renderer);
 		SDL_Quit();
 		return 1;
 	};
@@ -77,6 +82,7 @@ void NewGame( Game* game, CarInfo * cars) {
 	game->time.startGame = SDL_GetTicks();
 	game->time.killMessage = 0;
 	game->time.scoreFreeze = 0;
+	game->time.delta = 0;
 	game->time.total = 0;
 	game->score = 0;
 	game->totalDistance = 0;
@@ -112,7 +118,7 @@ bool inArray(int x, int y) {
 
 
 // Check if vertical position is out of screen and do it in the range.
-void inArrayDeltaY(int* vertical) {
+void fixCoordY(int* vertical) {
 	if (*vertical < 90) {
 		*vertical = 90;
 	}
@@ -123,7 +129,7 @@ void inArrayDeltaY(int* vertical) {
 
 
 // Check ifhorizontal position is out of screen and do it in the range.
-void inArrayDeltaX(int* horizontal) {
+void fixCoordX(int* horizontal) {
 	if (*horizontal < SCREEN_WIDTH / 2 - SCREEN_WIDTH / 6) {
 		*horizontal = SCREEN_WIDTH / 2 - SCREEN_WIDTH / 6;
 	}
@@ -183,7 +189,6 @@ bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, str
 			numbersInArray(x1 + object->car->w / 2, y1 + i, object)) {
 			if (isFreePlace(object, cars, game->car.turn)) {
 				object->coord.x += game->car.turn * deltaTime * 300;
-				printf("Delta: %f\n", game->car.turn * deltaTime * 300);
 				if (object->coord.x < SCREEN_WIDTH / 3 - object->car->w ||
 					object->coord.x > 2 * SCREEN_WIDTH / 3 + object->car->w)
 				{
@@ -195,7 +200,6 @@ bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, str
 						}
 					}
 					else {
-						printf("-1000 - %d\n", object->coord.x);
 						game->time.scoreFreeze += 3;
 					}
 				}
@@ -233,24 +237,22 @@ void DrawRectangle(SDL_Surface* screen, int x, int y, int l, int k,
 };
 
 
-void DrawDest(SDL_Surface* screen, int roadMarkingPos) {
-	int grey = SDL_MapRGB(screen->format, 105, 105, 105);
-	DrawRectangle(screen, SCREEN_WIDTH / 3, 0, SCREEN_WIDTH / 3, SCREEN_HEIGHT, grey, grey);
-	int grey_dark = SDL_MapRGB(screen->format, 40, 40, 40);
-	DrawRectangle(screen, SCREEN_WIDTH / 3 - SCREEN_WIDTH / 30, 0, SCREEN_WIDTH / 30, SCREEN_HEIGHT, grey_dark, grey_dark);
-	DrawRectangle(screen, SCREEN_WIDTH * 2 / 3, 0, SCREEN_WIDTH / 30, SCREEN_HEIGHT, grey_dark, grey_dark);
-
-	if (game.car.speed != 0) {
-		roadMarkingPos += (game.car.speed > 0 ? 4 * game.car.speed : (-7 * game.car.speed)) * game.time.delta * 100;
+void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
+	int grey = SDL_MapRGB(sdl->screen->format, 105, 105, 105);
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, 0, SCREEN_WIDTH / 3, SCREEN_HEIGHT, grey, grey);
+	int grey_dark = SDL_MapRGB(sdl->screen->format, 40, 40, 40);
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3 - SCREEN_WIDTH / 30, 0, SCREEN_WIDTH / 30, SCREEN_HEIGHT, grey_dark, grey_dark);
+	DrawRectangle(sdl->screen, SCREEN_WIDTH * 2 / 3, 0, SCREEN_WIDTH / 30, SCREEN_HEIGHT, grey_dark, grey_dark);
+	if (game->car.speed != 0) {
+		*roadMarkingPos += (game->car.speed > 0 ? 4 * game->car.speed : (-7 * game->car.speed)) * game->time.delta * 100;
 	}
 	else {
-		roadMarkingPos += game.time.delta * 500;
+		*roadMarkingPos += game->time.delta * 500;
 	}
-
-	int tmpPos = roadMarkingPos;
+	int tmpPos = *roadMarkingPos;
 	// Draw road
 	while (tmpPos > -SCREEN_HEIGHT / 7) {
-		DrawRoadRectangle(sdl.screen, tmpPos);
+		DrawRoadRectangle(sdl->screen, tmpPos);
 		tmpPos -= SCREEN_HEIGHT / 3;
 	}
 };
@@ -263,7 +265,7 @@ void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps) {
 	DrawRectangle(sdl.screen, 4, 4, SCREEN_WIDTH - 8, 36, czerwony, niebieski);
 	sprintf(text, "Ruslan Rabadanov 196634");
 	DrawString(sdl.screen, sdl.screen->w / 2 - strlen(text) * 8 / 2, 10, text, sdl.charset);
-	sprintf(text, "Czas trwania = %.1lf s  %.0lf klatek / s\tScore: %.0f", game.time, fps, game.score);
+	sprintf(text, "Czas trwania = %.1lf s  %.0lf klatek / s\tScore: %.0f", game.time.total, fps, game.score);
 	DrawString(sdl.screen, sdl.screen->w / 2 - strlen(text) * 8 / 2, 26, text, sdl.charset);
 
 	if (game.time.scoreFreeze) {
@@ -333,8 +335,8 @@ bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn) {
 		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x || cars[i].coord.x == 0) continue;
 		// проверяю нижнюю левую и нижнюю правую точки зареспавненной машины
 		if (numbersInArray(x, y, &cars[i]) || numbersInArray(x, y2, &cars[i])) {
-			// WARN
-			car->coord.x -= turn;
+			// WARN ! 
+			car->coord.x -= turn * 2;
 			return false;
 		}
 	}
@@ -345,7 +347,7 @@ bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn) {
 bool inFault(int num1, int num2, int fault) {
 	int num = (num1 - num2 > 0) ? num1 - num2 : num2 - num1;
 	return (num < fault) ? true : false;
-}
+} 
 
 
 // Проверка для атакующей машины может ли она ехать
@@ -367,6 +369,22 @@ bool canRide(struct CarInfo* car, struct CarInfo* cars) {
 }
 
 
+// проверка с 4 сторон есть ли там машины
+bool freeSpace(struct CarInfo* car, struct CarInfo* cars) {
+	// turn = -1 : упирается сверху, 1 : упирается снизу
+	int x = car->coord.x;
+	int y = car->coord.y;
+	for (int i = 0; i < 5; i++) {
+		// Если попал на свою же машину
+		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x) continue;
+		
+		if (inFault(x, cars[i].coord.x, car->car->w + 5) && inFault(y, cars[i].coord.y, car->car->h + 5))
+			return false;
+	}
+	return true;
+}
+
+
 // can attack if player is above or under the enemy car
 // 2 - car is above, 0 - can't attack, -1 - car is under the enemy
 int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars) {
@@ -376,6 +394,7 @@ int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars) {
 			if (!canRide(car, cars)) {
 				// += 1
 				car->coord.y -= 3;
+				printf("InFault -> Coord.y - 3\n");
 				return 0;
 			}
 			return 2;
@@ -385,6 +404,7 @@ int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars) {
 			if (!canRide(car, cars)) {
 				// -= 2
 				car->coord.y += 3;
+				printf("InFault -> Coord.y + 3\n");
 				return 0;
 			}
 			return -1;
@@ -396,28 +416,32 @@ int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars) {
 }
 
 
-void drawRandomCar(CarInfo* cars, Game game, SDL sdl) {
+void drawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 	for (int i = 0; i < 5; i++) {
 		if (cars[i].coord.x != 0) {
 			// Если уничтоженное, то слетает с дороги быстрее
-			cars[i].speed = isDestroyed(&cars[i]) ? 500 : 100;
-			if (cars[i].isEnemy && canAttack(&cars[i], &game, cars) != 100) {
+			cars[i].speed = isDestroyed(&cars[i]) ? 500 : 200;
+			// Если поставить != 0, то не будет наезжать на меня сверху вниз
+			if (cars[i].isEnemy && canAttack(&cars[i], game, cars) != 100) {
 				// canAttack определяет в какую сторону поедет актаковать
-				cars[i].coord.y += game.time.delta * cars[i].speed * 1.3 * canAttack(&cars[i], &game, cars);
+				cars[i].coord.y += game->time.delta * cars[i].speed * canAttack(&cars[i], game, cars) > 0 ? 2  : -0.7;
+				printf("Attack cars[%d].coord.y = %d\n", i, cars[i].coord.y);
 			}
 			else {
-				cars[i].coord.y += game.time.delta * cars[i].speed;
+				cars[i].coord.y += game->time.delta * cars[i].speed;
 			}
 		}
 	}
+	
 
 	// Create new car if needed (every X distance)
-	if (int(game.totalDistance * 10000) % 181 == 0) {
+	if (int(game->totalDistance * 1000) % 181 == 0) {
 		bool flag = true;
 		for (int i = 0; i < 5; i++) {
 			if (cars[i].coord.x == 0 && flag) {
 				char* car_path = randomCar();
 				cars[i].car = SDL_LoadBMP(car_path);
+				cars[i].speed = 200;
 				if (car_path == "./assets/car_blue.bmp" || car_path == "./assets/car_lilac.bmp") {
 					cars[i].isEnemy = false;
 				}
@@ -427,9 +451,10 @@ void drawRandomCar(CarInfo* cars, Game game, SDL sdl) {
 				cars[i].coord.y = -cars[i].car->h / 2;
 				// Над экраном на высоту сгенерированного авто
 				cars[i].coord.x = rand() % (SCREEN_WIDTH / 3) + SCREEN_WIDTH / 3;
+				int iterCounter = 0;
 				do {
 					cars[i].coord.x = rand() % (SCREEN_WIDTH / 3) + SCREEN_WIDTH / 3;
-				} while (!isFreePlace(&cars[i], cars, -1) || !isFreePlace(&cars[i], cars, 1)); // isFreePlace(&car, cars)
+				} while (++iterCounter < 30 && (!isFreePlace(&cars[i], cars, -1) || !isFreePlace(&cars[i], cars, 1))); // isFreePlace(&car, cars)
 				flag = false;
 				break;
 			}
@@ -441,11 +466,11 @@ void drawRandomCar(CarInfo* cars, Game game, SDL sdl) {
 
 	for (int i = 0; i < 5; i++) {
 		if (cars[i].coord.x != 0) {
-			if (touchObject(&game, &cars[i], game.time.delta, cars)) {
-				NewGame(&game, cars);
+			if (touchObject(game, &cars[i], game->time.delta, cars)) {
+				NewGame(game, cars);
 			}
 			else {
-				DrawSurface(sdl.screen, cars[i].car, cars[i].coord.x, cars[i].coord.y);
+				DrawSurface(sdl->screen, cars[i].car, cars[i].coord.x, cars[i].coord.y);
 			}
 		}
 	}
@@ -462,9 +487,9 @@ void freeSurfaces(SDL sdl) {
 }
 
 
-void renderSurfaces(SDL sdl) {
-	SDL_UpdateTexture(sdl.scrtex, NULL, sdl.screen->pixels, sdl.screen->pitch);
-	SDL_RenderClear(sdl.renderer);
-	SDL_RenderCopy(sdl.renderer, sdl.scrtex, NULL, NULL);
-	SDL_RenderPresent(sdl.renderer);
+void renderSurfaces(SDL* sdl) {
+	SDL_UpdateTexture(sdl->scrtex, NULL, sdl->screen->pixels, sdl->screen->pitch);
+	SDL_RenderClear(sdl->renderer);
+	SDL_RenderCopy(sdl->renderer, sdl->scrtex, NULL, NULL);
+	SDL_RenderPresent(sdl->renderer);
 }
