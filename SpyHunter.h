@@ -20,11 +20,15 @@ typedef struct Game {
 		int speed = 0;
 		int turn = 0;
 	} car;
-	double time = 0;
-	double freeze = 0;
-	double distance = 0;
-	double killMesTime = 0;
-	double score = distance * distance * time;
+	struct {
+		double startGame = SDL_GetTicks();
+		double total;
+		double delta;
+		double scoreFreeze;
+		double killMessage;
+	} time;
+	double totalDistance = 0;
+	double score;
 };
 
 
@@ -34,9 +38,23 @@ typedef struct CarInfo {
 		int x;
 		int y;
 	} coord;
+	double speed = 1;
 	bool isEnemy;
 };
 
+typedef struct SDL {
+	SDL_Event event;
+	SDL_Surface* screen = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32,
+		0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+	SDL_Surface* charset = SDL_LoadBMP("./cs8x8.bmp");
+	SDL_Surface* player = SDL_LoadBMP("./assets/car.bmp");
+	SDL_Texture* scrtex;
+	SDL_Window* window;
+	SDL_Renderer* renderer;
+};
+
+
+int initGame(SDL sdl);
 
 
 // draw a text txt on surface screen, starting from the point (x, y)
@@ -87,7 +105,7 @@ void DrawRectangle(SDL_Surface* screen, int x, int y, int l, int k,
 	Uint32 outlineColor, Uint32 fillColor);
 
 
-void DrawDest(SDL_Surface* screen);
+void DrawDest(SDL_Surface* screen, int roadMarkingPos);
 
 
 bool isDestroyed(struct CarInfo* car);
@@ -105,6 +123,23 @@ bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn);
 
 int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars);
 
+
 bool canRide(struct CarInfo* car, struct CarInfo* cars);
 
+
 bool inFault(int num1, int num2, int fault);
+
+
+void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps);
+
+
+int modul(int num);
+
+
+void drawRandomCar(CarInfo* cars, Game game, SDL sdl);
+
+
+void freeSurfaces(SDL sdl);
+
+
+void renderSurfaces(SDL sdl);
