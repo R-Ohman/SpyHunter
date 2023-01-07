@@ -90,6 +90,7 @@ void NewGame( Game* game, CarInfo * cars) {
 	game->car.coord.y = SCREEN_HEIGHT * 2 / 3;
 	game->car.speed = 0;
 	game->car.turn = 0;
+	game->bullet.speed = 0;
 	for (int i = 0; i < 5; i++) {
 		cars[i].coord.x = 0;
 	}
@@ -395,12 +396,10 @@ bool canGo(struct CarInfo* car, struct CarInfo* cars, int direction) {
 			!inFault(cars[i].coord.x, car->coord.x, car->car->w)) continue;
 
 		// WARN
-		printf("\ncars[%d].coord.y = %d, car->coord.y = %d", i, cars[i].coord.y, car->coord.y);
 		if (direction == -1) deltaY = car->coord.y - cars[i].coord.y;
 		else deltaY = cars[i].coord.y - car->coord.y;
-		printf("\nBefore if (canGo()), deltaY = %d", deltaY);
+		
 		if (deltaY > 0 && deltaY < car->car->h + 10) {
-			printf("\ncanGo return FALSE\n");
 			return false;
 		}
 	}
@@ -416,29 +415,12 @@ int canAttack(struct CarInfo* car, struct Game* game, struct CarInfo* cars) {
 		// CHANGE | SCREEN_HEIGHT/2
 		if (inFault(game->car.coord.y, car->coord.y, SCREEN_HEIGHT) && game->car.coord.y - car->coord.y > car->car->h + 30) {
 			// При атаке сверху тормозит за 30 пикселей от меня
-			//if (!canRide(car, cars)) {
-			//	// += 1
-			//	car->coord.y -= 3;
-			//	printf("InFault -> Coord.y - 3\n");
-			//	return 0;
-			//}
-			printf("TRY GO DOWN!\t");
 			if (canGo(car, cars, 1)) return 2;
-			printf("Can't go down (IF)\n");
 		}
 		else if (inFault(game->car.coord.y, car->coord.y, SCREEN_HEIGHT) && game->car.coord.y - car->coord.y < -car->car->h - 10) {
 			// При атаке тормозит за 10 пикселей от меня CHANGE
-			//if (!canRide(car, cars)) {
-			//	// -= 2
-			//	car->coord.y += 3;
-			//	printf("InFault -> Coord.y + 3\n");
-			//	return 0;
-			//}
-			printf("TRY GO UP!\t");
 			if (canGo(car, cars, -1)) return -1;
-			printf("Can't go up (else if)\n");
 		}
-		//return  (car->coord.y < game->car.coord.y) ? 2 : -1;
 	}
 	return 0;
 }
@@ -448,9 +430,7 @@ void drawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 	for (int i = 0; i < 5; i++) {
 		if (cars[i].coord.x != 0) {
 			// Если уничтоженное, то слетает с дороги быстрее
-
 			cars[i].speed = isDestroyed(&cars[i]) ? 500 : 200;
-			// Если поставить != 0, то не будет наезжать на меня сверху вниз
 			if (cars[i].isEnemy && canAttack(&cars[i], game, cars)) {
 				// canAttack определяет в какую сторону поедет актаковать
 				cars[i].coord.y += game->time.delta * cars[i].speed * canAttack(&cars[i], game, cars) > 0 ? 2  : -0.7;
@@ -460,7 +440,6 @@ void drawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 			}
 		}
 	}
-	
 
 	// Create new car if needed (every X distance)
 	if (int(game->totalDistance * 1000) % 181 == 0) {
@@ -501,6 +480,59 @@ void drawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 				DrawSurface(sdl->screen, cars[i].car, cars[i].coord.x, cars[i].coord.y);
 			}
 		}
+	}
+}
+
+
+int carIsKilled(Game* game, CarInfo* cars) {
+	// return 0 - no one is killed, -1 - citizen is killed, 1 - enemy is killed
+	for (int i = 0; i < 5; i++) {
+		bool isEnemy = cars[i].isEnemy;
+		if (cars[i].coord.x != 0) {
+			if (inFault(game->bullet.coord.y, cars[i].coord.y, cars[i].car->h/2) &&
+				inFault(game->bullet.coord.x, cars[i].coord.x, cars[i].car->w / 2)) {
+				cars[i].car = SDL_LoadBMP("./assets/car_destroyed.bmp");
+				cars[i].isEnemy = false;
+				return isEnemy ? 1 : -1;
+			}
+		}
+	}
+	return 0;
+}
+
+
+void addBullet(Game* game) {
+	game->bullet.bullet = SDL_LoadBMP("./assets/bullet.bmp");
+	game->bullet.coord.x = game->car.coord.x;
+	game->bullet.coord.y = game->car.coord.y - 30;
+	game->bullet.speed = 500;
+}
+
+
+void drawBullet(CarInfo* cars, Game* game, SDL* sdl) {
+	if (game->bullet.coord.x == 0) return;
+	if (game->bullet.coord.y > -game->bullet.bullet->h) {
+		game->bullet.coord.y -= game->time.delta * game->bullet.speed;
+		DrawSurface(sdl->screen, game->bullet.bullet, game->bullet.coord.x, game->bullet.coord.y);
+		int result = carIsKilled(game, cars);
+		if (result) {
+			game->bullet.coord.x = 0;
+			game->bullet.coord.y = 0;
+			switch (result) {
+			case -1:
+				printf("+3s\n");
+				game->time.scoreFreeze += 3;
+				break;
+			case 1:
+				printf("+1000\n");
+				game->score += 1000;
+				break;
+			}
+		}
+	}
+	else {
+		game->bullet.coord.x = 0;
+		game->bullet.coord.y = 0;
 	}
 }
 

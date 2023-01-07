@@ -27,6 +27,15 @@ typedef struct Game {
 		double scoreFreeze;
 		double killMessage;
 	} time;
+	struct {
+		SDL_Surface* bullet;
+		struct {
+			int x;
+			int y;
+		} coord;
+		int speed;
+		double distance;
+	} bullet;
 	double totalDistance;
 	double score;
 };
@@ -148,3 +157,9 @@ void renderSurfaces(SDL* sdl);
 
 
 bool canGo(struct CarInfo* car, struct CarInfo* cars, int direction);
+
+
+void addBullet(Game* game);
+
+
+void drawBullet(CarInfo* cars, Game* game, SDL* sdl);

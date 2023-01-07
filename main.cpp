@@ -4,11 +4,20 @@
 #define REFRESH_RATE 1/SECONDS_BETWEEN_REFRESH
 
 /*
-ПЛАН НА 5.01
+ПЛАН НА 7.01
 - пересмотреть функции, убрать все ненужное
-- сделать возможность стрелять
+- пофиксить спавн (увеличить расстояние по Y)
+- добавить улучшение для стрельбы
+- обновить NewGame() с учетом пули
+- пофиксить выстрел когда пуля уже есть на экране
 
 БАГИ:
+
+
+Изменить:
+- скорость вражеских авто
+
+Проверить:
 - при сбитии вражеского авто, которое уперлось (снизу) в другое авто, оно отодвигается не в ту сторону
 - когда 2 атакующих авто прилегают друг к другу, они не атакуют
 */
@@ -48,6 +57,7 @@ int main(int argc, char** argv) {
 		game.car.coord.x += game.car.turn * game.time.delta * 300;
 		fixCoordX(&game.car.coord.x);
 
+		drawBullet(cars, &game, &sdl);
 		drawRandomCar(cars, &game, &sdl);
 		// draw player
 		DrawSurface(sdl.screen, sdl.player, game.car.coord.x, game.car.coord.y);
@@ -72,6 +82,7 @@ int main(int argc, char** argv) {
 				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.car.speed = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.car.turn = -1;
 				else if (sdl.event.key.keysym.sym == SDLK_RIGHT) game.car.turn = 1;
+				else if (sdl.event.key.keysym.sym == SDLK_SPACE) addBullet(&game);
 				break;
 			case SDL_KEYUP:
 				if (sdl.event.key.keysym.sym == SDLK_UP) game.car.speed = 0;
