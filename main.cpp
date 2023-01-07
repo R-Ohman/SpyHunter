@@ -34,7 +34,6 @@ int main(int argc, char** argv) {
 	NewGame(&game, cars);
 	int timeStart = game.time.startGame, timeEnd, quit = 0, frames = 0, roadMarkingPos = SCREEN_HEIGHT - 100;
 	double fpsTimer = 0, fps = 0;
-	sdl.player = SDL_LoadBMP("./assets/car.bmp");
 
 	while (!quit) {
 		// Fill window with green color;
@@ -50,19 +49,19 @@ int main(int argc, char** argv) {
 		if (game.time.scoreFreeze < 0) game.time.scoreFreeze = 0;
 		if (game.time.killMessage > 0) game.time.killMessage -= game.time.delta;
 		
-		game.totalDistance += game.car.speed * game.time.delta + game.time.delta;
+		game.totalDistance += game.player.speed * game.time.delta + game.time.delta;
 		// WARN - моэно поменять; дефолтно скорость 0, ибо авто не едет
-		if (!game.time.scoreFreeze) game.score += modul(game.car.speed) * game.totalDistance * game.time.delta / 2;
+		if (!game.time.scoreFreeze) game.score += modul(game.player.speed) * game.totalDistance * game.time.delta / 2;
 		
-		game.car.coord.y += (game.car.speed > 0 ? 400 : 100) * game.time.delta * game.car.speed;
-		fixCoordY(&game.car.coord.y);
-		game.car.coord.x += game.car.turn * game.time.delta * 300;
-		fixCoordX(&game.car.coord.x);
+		game.player.coord.y += (game.player.speed > 0 ? 400 : 100) * game.time.delta * game.player.speed;
+		fixCoordY(&game.player.coord.y);
+		game.player.coord.x += game.player.turn * game.time.delta * 300;
+		fixCoordX(&game.player.coord.x);
 
-		drawBullet(cars, &game, &sdl);
-		drawRandomCar(cars, &game, &sdl);
+		DrawBullet(cars, &game, &sdl);
+		DrawRandomCar(cars, &game, &sdl);
 		// draw player
-		DrawSurface(sdl.screen, sdl.player, game.car.coord.x, game.car.coord.y);
+		DrawSurface(sdl.screen, game.player.player, game.player.coord.x, game.player.coord.y);
 		DrawHeader(sdl.screen, game, sdl, fps);
 
 		fpsTimer += game.time.delta;
@@ -72,7 +71,7 @@ int main(int argc, char** argv) {
 			fpsTimer -= SECONDS_BETWEEN_REFRESH;
 		};
 		
-		renderSurfaces(&sdl);
+		RenderSurfaces(&sdl);
 		
 		// handling of events (if there were any)
 		while (SDL_PollEvent(&sdl.event)) {
@@ -80,17 +79,17 @@ int main(int argc, char** argv) {
 			case SDL_KEYDOWN:
 				if (sdl.event.key.keysym.sym == SDLK_ESCAPE) quit = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_n) NewGame(&game, cars);
-				else if (sdl.event.key.keysym.sym == SDLK_UP) game.car.speed = -1;
-				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.car.speed = 1;
-				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.car.turn = -1;
-				else if (sdl.event.key.keysym.sym == SDLK_RIGHT) game.car.turn = 1;
+				else if (sdl.event.key.keysym.sym == SDLK_UP) game.player.speed = -1;
+				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.player.speed = 1;
+				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.player.turn = -1;
+				else if (sdl.event.key.keysym.sym == SDLK_RIGHT) game.player.turn = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_SPACE) addBullet(&game);
 				break;
 			case SDL_KEYUP:
-				if (sdl.event.key.keysym.sym == SDLK_UP) game.car.speed = 0;
-				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.car.speed = 0;
-				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.car.turn = 0;
-				else if (sdl.event.key.keysym.sym == SDLK_RIGHT) game.car.turn = 0;
+				if (sdl.event.key.keysym.sym == SDLK_UP) game.player.speed = 0;
+				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.player.speed = 0;
+				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.player.turn = 0;
+				else if (sdl.event.key.keysym.sym == SDLK_RIGHT) game.player.turn = 0;
 				break;
 			case SDL_QUIT:
 				quit = 1;
@@ -101,6 +100,6 @@ int main(int argc, char** argv) {
 	};
 
 	// freeing all surfaces
-	freeSurfaces(sdl);
+	FreeSurfaces(sdl);
 	return 0;
 };
