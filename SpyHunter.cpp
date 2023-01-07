@@ -1,6 +1,5 @@
 #include "SpyHunter.h"
 
-
 int initGame(SDL* sdl) {
 	sdl->screen = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32,
 		0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
@@ -49,17 +48,6 @@ int initGame(SDL* sdl) {
 		return 1;
 	};
 	SDL_SetColorKey(sdl->charset, true, 0x000000);
-
-	if (sdl->screen == NULL) {
-		printf("SDL_screen error: %s\n", SDL_GetError());
-		SDL_FreeSurface(sdl->screen);
-		SDL_DestroyTexture(sdl->scrtex);
-		SDL_DestroyWindow(sdl->window);
-		SDL_DestroyRenderer(sdl->renderer);
-		SDL_Quit();
-		return 1;
-	};
-
 	return 0;
 }
 
@@ -193,6 +181,30 @@ void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps) {
 };
 
 
+void DrawPlayer(Game* game, SDL* sdl) {
+	if (game->player.lives < 1) {
+		printf("GAME END\n");
+		return;
+	}
+	printf("%f\n", game->totalDistance);
+	if (game->time.total > GOD_MODE_TIME) {
+		if (game->totalDistance > 100) {
+			game->player.player = sdl->playerCars[4];
+		}
+		else if (game->totalDistance > 80) {
+			game->player.player = sdl->playerCars[3];
+		}
+		else if (game->totalDistance > 40) {
+			game->player.player = sdl->playerCars[2];
+		}
+		else if (game->totalDistance > 20) {
+			game->player.player = sdl->playerCars[1];
+		}
+	}
+	DrawSurface(sdl->screen, game->player.player, game->player.coord.x, game->player.coord.y);
+}
+
+
 void DrawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 	if (game->bullet.coord.x == 0) return;
 	if (game->bullet.coord.y > -game->bullet.bullet->h) {
@@ -221,13 +233,14 @@ void DrawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 
 
 void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < ENEMIES; i++) {
 		if (cars[i].coord.x != 0) {
 			// Если уничтоженное, то слетает с дороги быстрее
-			cars[i].speed = isDestroyed(&cars[i], sdl) ? 500 : 200;
-			if (cars[i].isEnemy && canAttack(&cars[i], game, cars)) {
+			cars[i].speed = CAR_SPEED * isDestroyed(&cars[i], sdl) ? 500 : 250;
+			double attackDirection = canAttack(&cars[i], game, cars);
+			if (cars[i].isEnemy && attackDirection) {
 				// canAttack определяет в какую сторону поедет актаковать
-				cars[i].coord.y += game->time.delta * cars[i].speed * canAttack(&cars[i], game, cars) > 0 ? 2 : -0.7;
+				cars[i].coord.y += attackDirection * cars[i].speed * game->time.delta;
 			}
 			else {
 				cars[i].coord.y += game->time.delta * cars[i].speed;
@@ -238,7 +251,7 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 	// Create new car if needed (every X distance)
 	if (int(game->totalDistance * 1000) % 181 == 0) {
 		bool flag = true;
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < ENEMIES; i++) {
 			if (cars[i].coord.x == 0 && flag) {
 				int car_num = rand() % 5;
 				cars[i].car = sdl->cars[car_num];
@@ -265,10 +278,11 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 		}
 	}
 
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < ENEMIES; i++) {
 		if (cars[i].coord.x != 0) {
 			if (touchObject(game, &cars[i], game->time.delta, cars, sdl)) {
-				NewGame(game, cars);
+				if (game->time.total > GOD_MODE_TIME) game->player.lives--;
+				SpawnPlayer(game, cars);
 			}
 			else {
 				DrawSurface(sdl->screen, cars[i].car, cars[i].coord.x, cars[i].coord.y);
@@ -278,9 +292,10 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 }
 
 
-
 void NewGame( Game* game, CarInfo * cars) {
+	SpawnPlayer(game, cars);
 	game->player.player = SDL_LoadBMP("./assets/player_1.bmp");
+	game->player.lives = 2;
 	game->time.startGame = SDL_GetTicks();
 	game->time.killMessage = 0;
 	game->time.scoreFreeze = 0;
@@ -288,13 +303,17 @@ void NewGame( Game* game, CarInfo * cars) {
 	game->time.total = 0;
 	game->score = 0;
 	game->totalDistance = 0;
+	game->bullet.speed = 0;
+	game->bullet.coord.y = -20;
+};
+
+
+void SpawnPlayer(Game* game, CarInfo* cars) {
 	game->player.coord.x = SCREEN_WIDTH / 2;
 	game->player.coord.y = SCREEN_HEIGHT * 2 / 3;
 	game->player.speed = 0;
 	game->player.turn = 0;
-	game->bullet.speed = 0;
-	game->bullet.coord.y = -20;
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < ENEMIES; i++) {
 		cars[i].coord.x = 0;
 	}
 };
@@ -360,7 +379,7 @@ bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo *c
 					object->coord.x > 2 * SCREEN_WIDTH / 3 + object->car->w)
 				{
 					// Car is destroyed
-					object->car = sdl->cars[5];
+					object->car = sdl->cars[ENEMIES];
 					if (object->isEnemy) {
 						if (!game->time.scoreFreeze) {
 							game->score += 1000;
@@ -393,7 +412,7 @@ bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo *c
 
 
 bool isDestroyed(CarInfo* car, SDL* sdl) {
-	if (car->car == sdl->cars[5]
+	if (car->car == sdl->cars[ENEMIES]
 		|| car->coord.x < SCREEN_WIDTH / 3 - car->car->w || car->coord.x > 2 * SCREEN_WIDTH / 3 + car->car->w) {
 		return true;
 	}
@@ -412,7 +431,7 @@ bool isFreePlace(CarInfo* car, CarInfo* cars, int turn) {
 	else {
 		x = car->coord.x - car->car->w / 2;
 	}
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < ENEMIES; i++) {
 		// Если попал на свою же машину
 		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x || cars[i].coord.x == 0) continue;
 		// проверяю нижнюю левую и нижнюю правую точки зареспавненной машины
@@ -428,17 +447,17 @@ bool isFreePlace(CarInfo* car, CarInfo* cars, int turn) {
 
 // can attack if player is above or under the enemy car
 // 2 - car is above, 0 - can't attack, -1 - car is under the enemy
-int canAttack(CarInfo* car, Game* game, CarInfo* cars) {
+double canAttack(CarInfo* car, Game* game, CarInfo* cars) {
 	// Атакует если в одной полосе хотя бы половина машины
 	if (inFault(game->player.coord.x, car->coord.x, 31)) {
 		// CHANGE | SCREEN_HEIGHT/2
 		if (inFault(game->player.coord.y, car->coord.y, SCREEN_HEIGHT) && game->player.coord.y - car->coord.y > car->car->h + 30) {
 			// При атаке сверху тормозит за 30 пикселей от меня
-			if (canGo(car, cars, 1)) return 2;
+			if (canGo(car, cars, 1)) return 1.8;
 		}
 		else if (inFault(game->player.coord.y, car->coord.y, SCREEN_HEIGHT) && game->player.coord.y - car->coord.y < -car->car->h - 10) {
 			// При атаке тормозит за 10 пикселей от меня CHANGE
-			if (canGo(car, cars, -1)) return -1;
+			if (canGo(car, cars, -1)) return -0.6;
 		}
 	}
 	return 0;
@@ -449,7 +468,7 @@ int canAttack(CarInfo* car, Game* game, CarInfo* cars) {
 bool canRide(CarInfo* car, CarInfo* cars) {
 	// turn = -1 : упирается сверху, 1 : упирается снизу
 	int y = car->coord.y;
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < ENEMIES; i++) {
 		// Если попал на свою же машину
 		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x || cars[i].coord.x == 0) continue;
 		// проверяю нвходится ли в радиусе другое авто
@@ -469,7 +488,7 @@ bool freeSpace(CarInfo* car, CarInfo* cars) {
 	// turn = -1 : упирается сверху, 1 : упирается снизу
 	int x = car->coord.x;
 	int y = car->coord.y;
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < ENEMIES; i++) {
 		// Если попал на свою же машину
 		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x) continue;
 		
@@ -495,7 +514,7 @@ bool canGo(CarInfo* car, CarInfo* cars, int direction) {
 	// direction: -1 -> вверх, 1 -> вниз
 	int deltaY;
 	
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < ENEMIES; i++) {
 		// Если попал на свою же машину
 		if (cars[i].coord.x == 0 || cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x ||
 			!inFault(cars[i].coord.x, car->coord.x, car->car->w)) continue;
@@ -523,13 +542,13 @@ void addBullet(Game* game) {
 
 int carIsKilled(Game* game, CarInfo* cars, SDL* sdl) {
 	// return 0 - no one is killed, -1 - citizen is killed, 1 - enemy is killed
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < ENEMIES; i++) {
 		bool isEnemy = cars[i].isEnemy;
 		if (cars[i].coord.x != 0) {
 			if (inFault(game->bullet.coord.y, cars[i].coord.y, cars[i].car->h/2) &&
 				inFault(game->bullet.coord.x, cars[i].coord.x, cars[i].car->w / 2)) {
 				// Car is killed
-				cars[i].car = sdl->cars[5];
+				cars[i].car = sdl->cars[ENEMIES];
 				cars[i].isEnemy = false;
 				game->bullet.speed = 0;
 				return isEnemy ? 1 : -1;

@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 		if (game.time.scoreFreeze < 0) game.time.scoreFreeze = 0;
 		if (game.time.killMessage > 0) game.time.killMessage -= game.time.delta;
 		
-		game.totalDistance += game.player.speed * game.time.delta + game.time.delta;
+		game.totalDistance += game.time.delta - game.player.speed * game.time.delta ;
 		// WARN - моэно поменять; дефолтно скорость 0, ибо авто не едет
 		if (!game.time.scoreFreeze) game.score += modul(game.player.speed) * game.totalDistance * game.time.delta / 2;
 		
@@ -61,7 +61,8 @@ int main(int argc, char** argv) {
 		DrawBullet(cars, &game, &sdl);
 		DrawRandomCar(cars, &game, &sdl);
 		// draw player
-		DrawSurface(sdl.screen, game.player.player, game.player.coord.x, game.player.coord.y);
+		DrawPlayer(&game, &sdl);
+		//DrawSurface(sdl.screen, game.player.player, game.player.coord.x, game.player.coord.y);
 		DrawHeader(sdl.screen, game, sdl, fps);
 
 		fpsTimer += game.time.delta;

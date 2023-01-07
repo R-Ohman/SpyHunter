@@ -10,8 +10,9 @@
 
 #define SCREEN_WIDTH	960
 #define SCREEN_HEIGHT	720
-#define GOD_MODE_TIME	30
-#define CAR_SPEED		100
+#define GOD_MODE_TIME	15
+#define ENEMIES			5
+#define CAR_SPEED		1
 
 
 struct Game {
@@ -109,6 +110,9 @@ void DrawRoadRectangle(SDL_Surface* screen, int y);
 void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps);
 
 
+void DrawPlayer(Game* game, SDL* sdl);
+
+
 void DrawBullet(CarInfo* cars, Game* game, SDL* sdl);
 
 
@@ -116,6 +120,9 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl);
 
 
 void NewGame(struct Game* game, struct CarInfo* cars);
+
+
+void SpawnPlayer(Game* game, CarInfo* cars);
 
 
 // check if X and Y coordinates are inside a screen
@@ -145,7 +152,7 @@ bool isDestroyed(CarInfo* car, SDL* sdl);
 bool isFreePlace(CarInfo* car, CarInfo* cars, int turn);
 
 
-int canAttack(CarInfo* car, Game* game, CarInfo* cars);
+double canAttack(CarInfo* car, Game* game, CarInfo* cars);
 
 
 bool canRide(CarInfo* car, CarInfo* cars);
