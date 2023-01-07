@@ -56,6 +56,7 @@ typedef struct SDL {
 	SDL_Surface* screen;
 	SDL_Surface* charset;
 	SDL_Surface* player;
+	SDL_Surface* cars[6];
 	SDL_Texture* scrtex;
 	SDL_Window* window;
 	SDL_Renderer* renderer;
@@ -105,7 +106,7 @@ bool numbersInArray(int x, int y, CarInfo* object);
 
 
 // Проверка для пикселей по периметру машины, находится ли позиция в другом объекте.
-bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, CarInfo *cars);
+bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, CarInfo *cars, SDL* sdl);
 
 
 // draw a rectangle of size l by k
@@ -116,14 +117,14 @@ void DrawRectangle(SDL_Surface* screen, int x, int y, int l, int k,
 void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos);
 
 
-bool isDestroyed(struct CarInfo* car);
+bool isDestroyed(struct CarInfo* car, SDL* sdl);
 
 
 void DrawRoadRectangle(SDL_Surface* screen, int y);
 
 
 // Retern string - path to the BMP image
-char* randomCar();
+int randomCar();
 
 
 bool isFreePlace(struct CarInfo* car, struct CarInfo* cars, int turn);
@@ -163,3 +164,6 @@ void addBullet(Game* game);
 
 
 void drawBullet(CarInfo* cars, Game* game, SDL* sdl);
+
+
+int carIsKilled(Game* game, CarInfo* cars, SDL* sdl);

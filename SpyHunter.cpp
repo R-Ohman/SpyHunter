@@ -6,11 +6,20 @@ int initGame(SDL* sdl) {
 		0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 	sdl->charset = SDL_LoadBMP("./cs8x8.bmp");
 	sdl->player = SDL_LoadBMP("./assets/car.bmp");
+	sdl->cars[0] = SDL_LoadBMP("./assets/car_blue.bmp");
+	sdl->cars[1] = SDL_LoadBMP("./assets/car_green.bmp");
+	sdl->cars[2] = SDL_LoadBMP("./assets/car_lightblue.bmp");
+	sdl->cars[3] = SDL_LoadBMP("./assets/car_lilac.bmp");
+	sdl->cars[4] = SDL_LoadBMP("./assets/car_red.bmp");
+	sdl->cars[5] = SDL_LoadBMP("./assets/car_destroyed.bmp");
 	
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
 		printf("SDL_Init error: %s\n", SDL_GetError());
 		return 1;
 	}
+	//  SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
+//	                                 &window, &renderer);
+	// SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer)
 	if (SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer) != 0) {
 		SDL_Quit();
 		printf("SDL_CreateWindowAndRenderer error: %s\n", SDL_GetError());
@@ -23,8 +32,7 @@ int initGame(SDL* sdl) {
 
 	SDL_SetWindowTitle(sdl->window, "Spy Hunter | Ruslan Rabadanov 196634");
 	sdl->scrtex = SDL_CreateTexture(sdl->renderer, SDL_PIXELFORMAT_ARGB8888,
-		SDL_TEXTUREACCESS_STREAMING,
-		SCREEN_WIDTH, SCREEN_HEIGHT);
+				SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 	SDL_ShowCursor(SDL_DISABLE);
 
 	if (sdl->charset == NULL) {
@@ -178,7 +186,7 @@ bool numbersInArray(int x, int y, CarInfo* object) {
 
 
 // ѕроверка дл€ пикселей по периметру машины, находитс€ ли позици€ в другом объекте.
-bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, struct CarInfo *cars) {
+bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, struct CarInfo *cars, SDL* sdl) {
 	int x1 = game->car.coord.x;
 	int y1 = game->car.coord.y;
 	int x2 = object->coord.x;
@@ -193,7 +201,8 @@ bool touchObject(struct Game* game, CarInfo* object, const double deltaTime, str
 				if (object->coord.x < SCREEN_WIDTH / 3 - object->car->w ||
 					object->coord.x > 2 * SCREEN_WIDTH / 3 + object->car->w)
 				{
-					object->car = SDL_LoadBMP("./assets/car_destroyed.bmp");
+					// Car is destroyed
+					object->car = sdl->cars[5];
 					if (object->isEnemy) {
 						if (!game->time.scoreFreeze) {
 							game->score += 1000;
@@ -238,6 +247,22 @@ void DrawRectangle(SDL_Surface* screen, int x, int y, int l, int k,
 };
 
 
+//void DrawRoadMarking(Game* game, SDL* sdl, int* roadMarkingPos) {
+//	if (game->car.speed != 0) {
+//		*roadMarkingPos += (game->car.speed > 0 ? 4 * game->car.speed : (-7 * game->car.speed)) * game->time.delta * 100;
+//	}
+//	else {
+//		*roadMarkingPos += game->time.delta * 500;
+//	}
+//	int tmpPos = *roadMarkingPos % (2 * SCREEN_HEIGHT);
+//	// Draw road
+//	while (tmpPos > -SCREEN_HEIGHT / 7) {
+//		DrawRoadRectangle(sdl->screen, tmpPos);
+//		tmpPos -= SCREEN_HEIGHT / 3;
+//	}
+//}
+
+
 void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
 	int grey = SDL_MapRGB(sdl->screen->format, 105, 105, 105);
 	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, 0, SCREEN_WIDTH / 3, SCREEN_HEIGHT, grey, grey);
@@ -250,12 +275,16 @@ void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
 	else {
 		*roadMarkingPos += game->time.delta * 500;
 	}
-	int tmpPos = *roadMarkingPos;
+	if (*roadMarkingPos > SCREEN_HEIGHT + SCREEN_HEIGHT / 3) *roadMarkingPos -= SCREEN_HEIGHT / 3;
 	// Draw road
+	//int* tmpPos = (int*)malloc(sizeof(int));
+	//*tmpPos = *roadMarkingPos;
+	int tmpPos = *roadMarkingPos;
 	while (tmpPos > -SCREEN_HEIGHT / 7) {
 		DrawRoadRectangle(sdl->screen, tmpPos);
 		tmpPos -= SCREEN_HEIGHT / 3;
 	}
+	//free(tmpPos);
 };
 
 
@@ -293,30 +322,12 @@ void DrawRoadRectangle(SDL_Surface* screen, int y) {
 };
 
 
-bool isDestroyed(struct CarInfo* car) {
-	if (car->car == SDL_LoadBMP("./assets/car_destroyed.bmp")
+bool isDestroyed(struct CarInfo* car, SDL* sdl) {
+	if (car->car == sdl->cars[5]
 		|| car->coord.x < SCREEN_WIDTH / 3 - car->car->w || car->coord.x > 2 * SCREEN_WIDTH / 3 + car->car->w) {
 		return true;
 	}
 	return false;
-}
-
-
-// Retern string - path to the BMP image
-char* randomCar() {
-	int number = rand() % 5 + 1;
-	switch (number) {
-	case 1:
-		return "./assets/car_blue.bmp";
-	case 2:
-		return "./assets/car_green.bmp";
-	case 3:
-		return "./assets/car_lightblue.bmp";
-	case 4:
-		return "./assets/car_lilac.bmp";
-	case 5:
-		return "./assets/car_red.bmp";
-	}
 }
 
 
@@ -430,7 +441,7 @@ void drawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 	for (int i = 0; i < 5; i++) {
 		if (cars[i].coord.x != 0) {
 			// ≈сли уничтоженное, то слетает с дороги быстрее
-			cars[i].speed = isDestroyed(&cars[i]) ? 500 : 200;
+			cars[i].speed = isDestroyed(&cars[i], sdl) ? 500 : 200;
 			if (cars[i].isEnemy && canAttack(&cars[i], game, cars)) {
 				// canAttack определ€ет в какую сторону поедет актаковать
 				cars[i].coord.y += game->time.delta * cars[i].speed * canAttack(&cars[i], game, cars) > 0 ? 2  : -0.7;
@@ -446,10 +457,10 @@ void drawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 		bool flag = true;
 		for (int i = 0; i < 5; i++) {
 			if (cars[i].coord.x == 0 && flag) {
-				char* car_path = randomCar();
-				cars[i].car = SDL_LoadBMP(car_path);
+				int car_num = rand() % 5;
+				cars[i].car = sdl->cars[car_num];
 				cars[i].speed = 200;
-				if (car_path == "./assets/car_blue.bmp" || car_path == "./assets/car_lilac.bmp") {
+				if (car_num == 0 || car_num == 3) {
 					cars[i].isEnemy = false;
 				}
 				else {
@@ -473,7 +484,7 @@ void drawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 
 	for (int i = 0; i < 5; i++) {
 		if (cars[i].coord.x != 0) {
-			if (touchObject(game, &cars[i], game->time.delta, cars)) {
+			if (touchObject(game, &cars[i], game->time.delta, cars, sdl)) {
 				NewGame(game, cars);
 			}
 			else {
@@ -484,14 +495,15 @@ void drawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 }
 
 
-int carIsKilled(Game* game, CarInfo* cars) {
+int carIsKilled(Game* game, CarInfo* cars, SDL* sdl) {
 	// return 0 - no one is killed, -1 - citizen is killed, 1 - enemy is killed
 	for (int i = 0; i < 5; i++) {
 		bool isEnemy = cars[i].isEnemy;
 		if (cars[i].coord.x != 0) {
 			if (inFault(game->bullet.coord.y, cars[i].coord.y, cars[i].car->h/2) &&
 				inFault(game->bullet.coord.x, cars[i].coord.x, cars[i].car->w / 2)) {
-				cars[i].car = SDL_LoadBMP("./assets/car_destroyed.bmp");
+				// Car is killed
+				cars[i].car = sdl->cars[5];
 				cars[i].isEnemy = false;
 				return isEnemy ? 1 : -1;
 			}
@@ -514,7 +526,7 @@ void drawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 	if (game->bullet.coord.y > -game->bullet.bullet->h) {
 		game->bullet.coord.y -= game->time.delta * game->bullet.speed;
 		DrawSurface(sdl->screen, game->bullet.bullet, game->bullet.coord.x, game->bullet.coord.y);
-		int result = carIsKilled(game, cars);
+		int result = carIsKilled(game, cars, sdl);
 		if (result) {
 			game->bullet.coord.x = 0;
 			game->bullet.coord.y = 0;
