@@ -134,7 +134,7 @@ void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
 		*roadMarkingPos += (game->player.speed > 0 ? 4 * game->player.speed : (-7 * game->player.speed)) * game->time.delta * 100;
 	}
 	else {
-		*roadMarkingPos += game->time.delta * 500;
+		*roadMarkingPos += game->time.delta * 2 * CAR_SPEED;
 	}
 	if (*roadMarkingPos > SCREEN_HEIGHT + SCREEN_HEIGHT / 3) *roadMarkingPos -= SCREEN_HEIGHT / 3;
 	// Draw road
@@ -187,14 +187,22 @@ void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps) {
 		sprintf(text, "You got weapon until %.1f sec", game.player.power.time);
 		DrawString(sdl.screen, sdl.screen->w - strlen(text) * 8, SCREEN_HEIGHT / 2 - 40, text, sdl.charset);
 	}
-	
-	sprintf(text, "Esc - wyjscie");
-	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 30, text, sdl.charset);
+	if (game.pause) {
+		sprintf(text, "Game paused!");
+		DrawString(sdl.screen, sdl.screen->w - strlen(text) * 8, SCREEN_HEIGHT / 2 - 60, text, sdl.charset);
+	}
 
 	sprintf(text, "N - nowa gra");
 	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10, text, sdl.charset);
+
+	sprintf(text, "Esc - wyjscie");
+	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 30, text, sdl.charset);
+	
 	sprintf(text, "\030/\031 - przyspieszenie/zwolnienie");
 	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 60, text, sdl.charset);
+
+	sprintf(text, "p - pause");
+	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 90, text, sdl.charset);
 };
 
 
@@ -226,7 +234,7 @@ int DrawPlayer(Game* game, SDL* sdl) {
 void DrawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 	if (game->bullet.coord.x == 0) return;
 	if (game->bullet.coord.y > -game->bullet.sprite->h || game->bullet.coord.y2 != 0 && game->bullet.coord.y2 < SCREEN_HEIGHT + game->bullet.sprite->h) {
-		game->bullet.coord.y -= game->time.delta * game->bullet.speed;
+		if (game->bullet.coord.y > -game->bullet.sprite->h) game->bullet.coord.y -= game->time.delta * game->bullet.speed;
 		if (game->bullet.coord.y2) game->bullet.coord.y2 += game->time.delta * game->bullet.speed;
 		DrawSurface(sdl->screen, game->bullet.sprite, game->bullet.coord.x, game->bullet.coord.y);
 		if (game->bullet.coord.y2) DrawSurface(sdl->screen, game->bullet.sprite, game->bullet.coord.x, game->bullet.coord.y2);
@@ -234,7 +242,7 @@ void DrawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 		int resultDown = 0;
 		if (game->bullet.coord.y2) resultDown = carIsKilled(game, cars, sdl, game->bullet.coord.y2);
 		if (resultUp) {
-			game->bullet.coord.y = 0;
+			game->bullet.coord.y = -200;
 			switch (resultUp) {
 			case -1:
 				printf("+3s\n");
@@ -247,7 +255,7 @@ void DrawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 			}
 		}
 		if (resultDown) {
-			game->bullet.coord.y2 = SCREEN_HEIGHT;
+			game->bullet.coord.y2 = SCREEN_HEIGHT + 200;
 			switch (resultDown) {
 			case -1:
 				printf("+3s\n");
@@ -271,7 +279,8 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 	for (int i = 0; i < ENEMIES; i++) {
 		if (cars[i].coord.x != 0) {
 			// Если уничтоженное, то слетает с дороги быстрее
-			cars[i].speed = CAR_SPEED * isDestroyed(&cars[i], sdl) ? 500 : 250;
+			// Если пауза - умножаем на 0 -> не двигаемся
+			cars[i].speed = (isDestroyed(&cars[i], sdl) ? 2 : 1) * (!game->pause) * CAR_SPEED;
 			double attackDirection = canAttack(&cars[i], game, cars);
 			if (cars[i].isEnemy && attackDirection) {
 				// canAttack определяет в какую сторону поедет актаковать
@@ -339,7 +348,7 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 	}
 	else if (game->power.sprite != NULL && game->player.power.sprite == NULL) {
 		// Если бонус заспавнился, но у игрока нет бонусов
-		game->power.coord.y += game->time.delta * 250;
+		game->power.coord.y += game->time.delta * 250 * !game->pause;
 		DrawSurface(sdl->screen, game->power.sprite, game->power.coord.x, game->power.coord.y);
 		if (game->power.coord.y > SCREEN_HEIGHT + game->power.sprite->h / 2) {
 			game->power.sprite = NULL;
@@ -376,9 +385,80 @@ void NewGame( Game* game, CarInfo * cars) {
 	game->score = 0;
 	game->totalDistance = 0;
 	game->bullet.speed = 0;
-	game->bullet.coord.y = -20;
-	game->bullet.coord.y2 = SCREEN_HEIGHT;
+	game->bullet.coord.y = -200;
+	game->bullet.coord.y2 = SCREEN_HEIGHT + 200;
+	game->pause = false;
 };
+
+
+void SaveGame(Game* game, CarInfo* cars) {
+	FILE* out;
+	time_t now = time(0);
+	struct {
+		Game* game = game;
+		CarInfo* cars = cars;
+	} save;
+	char name[50] = "saves/";
+	strftime(name + 6, 50, "%d-%m-%Y_%H-%M-%S", localtime(&now));
+	out = fopen(name, "wb");
+	fwrite(&save, sizeof(save), 1, out);
+	fclose(out);	
+}
+
+
+void LoadGame(Game* game, CarInfo* cars) {
+	FILE* in;
+	Game tempGame;
+	SDL_Surface* tempSpritePlayer = game->player.sprite;
+	SDL_Surface* tempSpritePlayerPower = game->player.power.sprite;
+	SDL_Surface* tempSpritePower = game->power.sprite;
+	char name[50] = "saves/08-01-2023_22-00-01";
+	in = fopen(name, "rb");
+
+	struct {
+		Game* game;
+		CarInfo* cars;
+	} save;
+
+	SDL_Surface* tmpCars[5];
+
+	for (int i = 0; i < ENEMIES; i++) {
+		tmpCars[i] = cars[i].car;
+	}
+	
+	fread(&save, sizeof(save), 1, in);
+	*game = *save.game;
+	game->player.sprite = tempSpritePlayer;
+	game->player.power.sprite = tempSpritePlayerPower;
+	game->power.sprite = tempSpritePower;
+	*cars = *save.cars;
+	for (int i = 0; i < ENEMIES; i++) {
+		cars[i].car = tmpCars[i];
+	}
+	
+	/*
+	fread(&tempGame, sizeof(Game), 1, in);
+	*game = tempGame;
+	game->player.sprite = tempSpritePlayer;
+	game->player.power.sprite = tempSpritePlayerPower;
+	game->power.sprite = tempSpritePower;
+
+	CarInfo* tmpEnemies[5];
+	SDL_Surface* tmpCars[5] = { NULL };
+	for (int i = 0; i < ENEMIES; i++) {
+		tmpCars[i] = cars[i].car;
+	}
+	fread(&tmpEnemies, sizeof(CarInfo), 5, in);
+	for (int i = 0; i < ENEMIES; i++) {
+		cars[i] = *tmpEnemies[i];
+		cars[i].car = tmpCars[i];
+	}
+	*/
+
+	
+	fclose(in);
+}
+
 
 
 void SpawnPlayer(Game* game, CarInfo* cars) {
@@ -623,7 +703,7 @@ void addBullet(Game* game) {
 	game->bullet.coord.x = game->player.coord.x;
 	game->bullet.coord.y = game->player.coord.y - 30;
 	if (game->player.power.time > 0) game->bullet.coord.y2 = game->player.coord.y + 30;
-	else game->bullet.coord.y2 = SCREEN_HEIGHT;
+	else game->bullet.coord.y2 = SCREEN_HEIGHT + 200;
 	game->bullet.speed = 500;
 }
 

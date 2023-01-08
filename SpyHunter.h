@@ -12,7 +12,8 @@
 #define SCREEN_HEIGHT	720
 #define GOD_MODE_TIME	15
 #define ENEMIES			5
-#define CAR_SPEED		1
+#define CAR_SPEED		250
+#define DATE_FORMAT		"%x-%I:%M%p"
 
 
 struct Game {
@@ -55,7 +56,6 @@ struct Game {
 		double deadMessage;
 	} time;
 
-
 	// power, что можно подобрать
 	struct {
 		SDL_Surface* sprite;
@@ -68,6 +68,7 @@ struct Game {
 	
 	double totalDistance;
 	double score;
+	bool pause;
 };
 
 
@@ -144,7 +145,13 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl);
 void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl);
 
 
-void NewGame(struct Game* game, struct CarInfo* cars);
+void NewGame(Game* game, CarInfo* cars);
+
+
+void SaveGame(Game* game, CarInfo* cars);
+
+
+void LoadGame(Game* game, CarInfo* cars);
 
 
 void SpawnPlayer(Game* game, CarInfo* cars);

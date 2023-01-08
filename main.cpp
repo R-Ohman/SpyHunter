@@ -14,6 +14,11 @@
 
 Изменить:
 
+
+Недочеты:
+- при паузе пуля продолжает лететь и может убить авто
+
+
 Проверить:
 - при сбитии вражеского авто, которое уперлось (снизу) в другое авто, оно отодвигается не в ту сторону
 - когда 2 атакующих авто прилегают друг к другу, они не атакуют
@@ -32,37 +37,39 @@ int main(int argc, char** argv) {
 
 	while (!quit) {
 		// Fill window with green color;
-		SDL_FillRect(sdl.screen, NULL, SDL_MapRGB(sdl.screen->format, 107, 142, 35));
+		if (!game.pause) SDL_FillRect(sdl.screen, NULL, SDL_MapRGB(sdl.screen->format, 107, 142, 35));
 		DrawDest(&game, &sdl, &roadMarkingPos);
 		// info text
 		
 		timeEnd = SDL_GetTicks();
 		game.time.delta = (timeEnd - timeStart) * 0.001;
 		timeStart = timeEnd;
-		game.time.total += game.time.delta;
-		if (game.time.scoreFreeze > 0) game.time.scoreFreeze -= game.time.delta;
-		if (game.time.scoreFreeze < 0) game.time.scoreFreeze = 0;
-		if (game.time.killMessage > 0) game.time.killMessage -= game.time.delta;
-		if (game.time.deadMessage > 0) game.time.deadMessage -= game.time.delta;
-		if (game.player.power.time > 0) game.player.power.time -= game.time.delta;
-		
-		game.totalDistance += game.time.delta - game.player.speed * game.time.delta ;
-		// WARN - моэно поменять; дефолтно скорость 0, ибо авто не едет
-		if (!game.time.scoreFreeze) game.score += modul(game.player.speed) * game.totalDistance * game.time.delta / 2;
-		
-		game.player.coord.y += (game.player.speed > 0 ? 400 : 100) * game.time.delta * game.player.speed;
-		fixCoordY(&game.player.coord.y);
-		game.player.coord.x += game.player.turn * game.time.delta * 300;
-		fixCoordX(&game.player.coord.x);
+		if (!game.pause) {
+			game.time.total += game.time.delta;
 
-		DrawBullet(cars, &game, &sdl);
-		DrawRandomPower(cars, &game, &sdl);
-		DrawRandomCar(cars, &game, &sdl);
-		// draw player
-		if (DrawPlayer(&game, &sdl)) {
-			NewGame(&game, cars);
-			game.time.deadMessage = 2;
+			if (game.time.scoreFreeze > 0) game.time.scoreFreeze -= game.time.delta;
+			if (game.time.scoreFreeze < 0) game.time.scoreFreeze = 0;
+			if (game.time.killMessage > 0) game.time.killMessage -= game.time.delta;
+			if (game.time.deadMessage > 0) game.time.deadMessage -= game.time.delta;
+			if (game.player.power.time > 0) game.player.power.time -= game.time.delta;
+
+			game.totalDistance += game.time.delta - game.player.speed * game.time.delta;
+			// WARN - моэно поменять; дефолтно скорость 0, ибо авто не едет
+			if (!game.time.scoreFreeze) game.score += modul(game.player.speed) * game.totalDistance * game.time.delta / 2;
+
+			game.player.coord.y += (game.player.speed > 0 ? 400 : 100) * game.time.delta * game.player.speed;
+			fixCoordY(&game.player.coord.y);
+			game.player.coord.x += game.player.turn * game.time.delta * 300;
+			fixCoordX(&game.player.coord.x);
 		}
+			DrawBullet(cars, &game, &sdl);
+			DrawRandomPower(cars, &game, &sdl);
+			DrawRandomCar(cars, &game, &sdl);
+			// draw player
+			if (DrawPlayer(&game, &sdl)) {
+				NewGame(&game, cars);
+				game.time.deadMessage = 2;
+			}
 		//DrawSurface(sdl.screen, game.player.player, game.player.coord.x, game.player.coord.y);
 		DrawHeader(sdl.screen, game, sdl, fps);
 
@@ -81,6 +88,9 @@ int main(int argc, char** argv) {
 			case SDL_KEYDOWN:
 				if (sdl.event.key.keysym.sym == SDLK_ESCAPE) quit = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_n) NewGame(&game, cars);
+				else if (sdl.event.key.keysym.sym == SDLK_p) game.pause = !game.pause;
+				else if (sdl.event.key.keysym.sym == SDLK_s) SaveGame(&game, cars);
+				else if (sdl.event.key.keysym.sym == SDLK_l) LoadGame(&game, cars);
 				else if (sdl.event.key.keysym.sym == SDLK_UP) game.player.speed = -1;
 				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.player.speed = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.player.turn = -1;
