@@ -10,7 +10,7 @@
 
 #define SCREEN_WIDTH	960
 #define SCREEN_HEIGHT	720
-#define GOD_MODE_TIME	15
+#define GOD_MODE_TIME	5
 #define ENEMIES			5
 #define CAR_SPEED		1
 
@@ -18,10 +18,21 @@
 struct Game {
 	struct {
 		SDL_Surface* player;
+		
 		struct Coord {
 			int x;
 			int y;
 		} coord;
+		
+		struct {
+			SDL_Surface* power;
+			struct {
+				int x;
+				int y;
+			} coord;
+			double time;
+		} power;
+		
 		int speed;
 		int turn;
 		int lives;
@@ -32,6 +43,7 @@ struct Game {
 		struct {
 			int x;
 			int y;
+			int y2;
 		} coord;
 		int speed;
 		double distance;
@@ -43,6 +55,7 @@ struct Game {
 		double delta;
 		double scoreFreeze;
 		double killMessage;
+		double deadMessage;
 	} time;
 	
 	double totalDistance;
@@ -68,6 +81,7 @@ struct SDL {
 	SDL_Surface* charset;
 	SDL_Surface* cars[6];
 	SDL_Surface* playerCars[6];
+	SDL_Surface* powerup[2];
 	SDL_Texture* scrtex;
 	SDL_Window* window;
 	SDL_Renderer* renderer;
@@ -110,13 +124,16 @@ void DrawRoadRectangle(SDL_Surface* screen, int y);
 void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps);
 
 
-void DrawPlayer(Game* game, SDL* sdl);
+int DrawPlayer(Game* game, SDL* sdl);
 
 
 void DrawBullet(CarInfo* cars, Game* game, SDL* sdl);
 
 
 void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl);
+
+
+void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl);
 
 
 void NewGame(struct Game* game, struct CarInfo* cars);
@@ -168,6 +185,9 @@ int modul(int num);
 
 
 bool canGo(CarInfo* car, CarInfo* cars, int direction);
+
+
+bool canSpawn(Game* game, CarInfo* cars);
 
 
 void addBullet(Game* game);

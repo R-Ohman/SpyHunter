@@ -48,6 +48,8 @@ int main(int argc, char** argv) {
 		if (game.time.scoreFreeze > 0) game.time.scoreFreeze -= game.time.delta;
 		if (game.time.scoreFreeze < 0) game.time.scoreFreeze = 0;
 		if (game.time.killMessage > 0) game.time.killMessage -= game.time.delta;
+		if (game.time.deadMessage > 0) game.time.deadMessage -= game.time.delta;
+		if (game.player.power.time > 0) game.player.power.time -= game.time.delta;
 		
 		game.totalDistance += game.time.delta - game.player.speed * game.time.delta ;
 		// WARN - моэно поменять; дефолтно скорость 0, ибо авто не едет
@@ -59,9 +61,13 @@ int main(int argc, char** argv) {
 		fixCoordX(&game.player.coord.x);
 
 		DrawBullet(cars, &game, &sdl);
+		DrawRandomPower(cars, &game, &sdl);
 		DrawRandomCar(cars, &game, &sdl);
 		// draw player
-		DrawPlayer(&game, &sdl);
+		if (DrawPlayer(&game, &sdl)) {
+			NewGame(&game, cars);
+			game.time.deadMessage = 2;
+		}
 		//DrawSurface(sdl.screen, game.player.player, game.player.coord.x, game.player.coord.y);
 		DrawHeader(sdl.screen, game, sdl, fps);
 
