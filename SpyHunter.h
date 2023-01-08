@@ -10,14 +10,14 @@
 
 #define SCREEN_WIDTH	960
 #define SCREEN_HEIGHT	720
-#define GOD_MODE_TIME	5
+#define GOD_MODE_TIME	15
 #define ENEMIES			5
 #define CAR_SPEED		1
 
 
 struct Game {
 	struct {
-		SDL_Surface* player;
+		SDL_Surface* sprite;
 		
 		struct Coord {
 			int x;
@@ -25,11 +25,8 @@ struct Game {
 		} coord;
 		
 		struct {
-			SDL_Surface* power;
-			struct {
-				int x;
-				int y;
-			} coord;
+			// power котопую подобрал
+			SDL_Surface* sprite;
 			double time;
 		} power;
 		
@@ -39,7 +36,7 @@ struct Game {
 	} player;
 	
 	struct {
-		SDL_Surface* bullet;
+		SDL_Surface* sprite;
 		struct {
 			int x;
 			int y;
@@ -57,6 +54,17 @@ struct Game {
 		double killMessage;
 		double deadMessage;
 	} time;
+
+
+	// power, что можно подобрать
+	struct {
+		SDL_Surface* sprite;
+		struct {
+			int x;
+			int y;
+		} coord;
+		double time;
+	} power;
 	
 	double totalDistance;
 	double score;
@@ -193,7 +201,7 @@ bool canSpawn(Game* game, CarInfo* cars);
 void addBullet(Game* game);
 
 
-int carIsKilled(Game* game, CarInfo* cars, SDL* sdl);
+int carIsKilled(Game* game, CarInfo* cars, SDL* sdl, int y);
 
 
 void RenderSurfaces(SDL* sdl);

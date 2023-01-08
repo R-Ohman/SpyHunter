@@ -203,22 +203,21 @@ int DrawPlayer(Game* game, SDL* sdl) {
 		printf("GAME END\n");
 		return 1;
 	}
-	printf("%f\n", game->totalDistance);
 	if (game->time.total > GOD_MODE_TIME) {
 		if (game->totalDistance > 100) {
-			game->player.player = sdl->playerCars[4];
+			game->player.sprite = sdl->playerCars[4];
 		}
 		else if (game->totalDistance > 80) {
-			game->player.player = sdl->playerCars[3];
+			game->player.sprite = sdl->playerCars[3];
 		}
 		else if (game->totalDistance > 40) {
-			game->player.player = sdl->playerCars[2];
+			game->player.sprite = sdl->playerCars[2];
 		}
 		else if (game->totalDistance > 20) {
-			game->player.player = sdl->playerCars[1];
+			game->player.sprite = sdl->playerCars[1];
 		}
 	}
-	DrawSurface(sdl->screen, game->player.player, game->player.coord.x, game->player.coord.y);
+	DrawSurface(sdl->screen, game->player.sprite, game->player.coord.x, game->player.coord.y);
 	
 	return 0;
 }
@@ -226,16 +225,30 @@ int DrawPlayer(Game* game, SDL* sdl) {
 
 void DrawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 	if (game->bullet.coord.x == 0) return;
-	if (game->bullet.coord.y > -game->bullet.bullet->h && game->bullet.coord.y2 < SCREEN_HEIGHT + game->bullet.bullet->h) {
+	if (game->bullet.coord.y > -game->bullet.sprite->h || game->bullet.coord.y2 != 0 && game->bullet.coord.y2 < SCREEN_HEIGHT + game->bullet.sprite->h) {
 		game->bullet.coord.y -= game->time.delta * game->bullet.speed;
 		if (game->bullet.coord.y2) game->bullet.coord.y2 += game->time.delta * game->bullet.speed;
-		DrawSurface(sdl->screen, game->bullet.bullet, game->bullet.coord.x, game->bullet.coord.y);
-		if (game->bullet.coord.y2) DrawSurface(sdl->screen, game->bullet.bullet, game->bullet.coord.x, game->bullet.coord.y2);
-		int result = carIsKilled(game, cars, sdl);
-		if (result) {
-			game->bullet.coord.x = 0;
+		DrawSurface(sdl->screen, game->bullet.sprite, game->bullet.coord.x, game->bullet.coord.y);
+		if (game->bullet.coord.y2) DrawSurface(sdl->screen, game->bullet.sprite, game->bullet.coord.x, game->bullet.coord.y2);
+		int resultUp = carIsKilled(game, cars, sdl, game->bullet.coord.y);
+		int resultDown = 0;
+		if (game->bullet.coord.y2) resultDown = carIsKilled(game, cars, sdl, game->bullet.coord.y2);
+		if (resultUp) {
 			game->bullet.coord.y = 0;
-			switch (result) {
+			switch (resultUp) {
+			case -1:
+				printf("+3s\n");
+				game->time.scoreFreeze += 3;
+				break;
+			case 1:
+				printf("+1000\n");
+				game->score += 1000;
+				break;
+			}
+		}
+		if (resultDown) {
+			game->bullet.coord.y2 = SCREEN_HEIGHT;
+			switch (resultDown) {
 			case -1:
 				printf("+3s\n");
 				game->time.scoreFreeze += 3;
@@ -249,6 +262,7 @@ void DrawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 	}
 	else {
 		game->bullet.speed = 0;
+		game->bullet.coord.x = 0;
 	}
 }
 
@@ -314,48 +328,56 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 
 
 void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
-	if (game->player.power.power == NULL && int(game->totalDistance * 1000) % 592 == 0) {
-		game->player.power.power = sdl->powerup[0];
-		game->player.power.coord.y = - game->player.power.power->h / 2;
-		//do {
-			game->player.power.coord.x = rand() % (SCREEN_WIDTH / 3) + SCREEN_WIDTH / 3;
-		//} while (!canSpawn(game, cars));
-		
+	if (game->power.sprite == NULL && int(game->totalDistance * 1000) % 429 == 0) {
+		printf("DrawRandomPower if\n");
+		game->power.sprite = sdl->powerup[0];
+		game->power.coord.y = - game->power.sprite->h / 2;
+		int counter = 0;
+		do {
+			game->power.coord.x = rand() % (SCREEN_WIDTH / 3) + SCREEN_WIDTH / 3;
+		} while (++counter < 30 && !canSpawn(game, cars));
 	}
-	else if (game->player.power.power != NULL) {
-		game->player.power.coord.y += game->time.delta * 250;
-		
-		if (game->player.power.coord.y > SCREEN_HEIGHT + game->player.power.power->h / 2) {
-			game->player.power.power = NULL;
+	else if (game->power.sprite != NULL && game->player.power.sprite == NULL) {
+		// ≈сли бонус заспавнилс€, но у игрока нет бонусов
+		game->power.coord.y += game->time.delta * 250;
+		DrawSurface(sdl->screen, game->power.sprite, game->power.coord.x, game->power.coord.y);
+		if (game->power.coord.y > SCREEN_HEIGHT + game->power.sprite->h / 2) {
+			game->power.sprite = NULL;
+			printf("Power sprite = NULL | 336\n");
 			return;
 		}
-		if (game->player.power.time <= 0) {
-			DrawSurface(sdl->screen, game->player.power.power, game->player.power.coord.x, game->player.power.coord.y);
-
-			if (inFault(game->player.power.coord.x, game->player.coord.x, game->player.player->w / 2 + game->player.power.power->w / 2) &&
-				inFault(game->player.power.coord.y, game->player.coord.y, game->player.player->h / 2 + game->player.power.power->h / 2)) {
+		if (inFault(game->power.coord.x, game->player.coord.x, game->player.sprite->w / 2 + game->power.sprite->w / 2) &&
+			inFault(game->power.coord.y, game->player.coord.y, game->player.sprite->h / 2 + game->power.sprite->h / 2)) {
+				game->player.power.sprite = game->power.sprite;
 				game->player.power.time = 5;
-			}
+				game->power.sprite = NULL;
+				printf("Power sprite = NULL | 344\n");
 		}
+	}
+	else if (game->player.power.time <= 0) {
+		game->player.power.sprite = NULL;
 	}
 }
 
 
 void NewGame( Game* game, CarInfo * cars) {
 	SpawnPlayer(game, cars);
-	game->player.player = SDL_LoadBMP("./assets/player_1.bmp");
+	game->player.sprite = SDL_LoadBMP("./assets/player_1.bmp");
 	game->player.lives = 2;
-	game->player.power.power = NULL;
+	game->player.power.sprite = NULL;
+	game->player.power.time = 0;
 	game->time.startGame = SDL_GetTicks();
 	game->time.killMessage = 0;
 	game->time.scoreFreeze = 0;
 	game->time.deadMessage = 0;
 	game->time.delta = 0;
 	game->time.total = 0;
+	game->power.sprite = NULL;
 	game->score = 0;
 	game->totalDistance = 0;
 	game->bullet.speed = 0;
 	game->bullet.coord.y = -20;
+	game->bullet.coord.y2 = SCREEN_HEIGHT;
 };
 
 
@@ -585,8 +607,9 @@ bool canGo(CarInfo* car, CarInfo* cars, int direction) {
 bool canSpawn(Game* game, CarInfo* cars) {
 	int deltaY;
 	for (int i = 0; i < ENEMIES; i++) {
-		deltaY = cars[i].coord.y - game->player.power.coord.y;
-		if (deltaY > 0 && deltaY < cars[i].car->h/2 + game->player.power.power->h/2 + 10) {
+		if (cars[i].coord.x == 0) continue;
+		deltaY = cars[i].coord.y - game->power.coord.y;
+		if (deltaY > 0 && deltaY < cars[i].car->h/2 + game->power.sprite->h/2 + 10) {
 			return false;
 		}
 	}
@@ -596,27 +619,26 @@ bool canSpawn(Game* game, CarInfo* cars) {
 
 void addBullet(Game* game) {
 	if (game->bullet.speed != 0) return;
-	game->bullet.bullet = SDL_LoadBMP("./assets/bullet.bmp");
+	game->bullet.sprite = SDL_LoadBMP("./assets/bullet.bmp");
 	game->bullet.coord.x = game->player.coord.x;
 	game->bullet.coord.y = game->player.coord.y - 30;
 	if (game->player.power.time > 0) game->bullet.coord.y2 = game->player.coord.y + 30;
-	else game->bullet.coord.y2 = 0;
+	else game->bullet.coord.y2 = SCREEN_HEIGHT;
 	game->bullet.speed = 500;
 }
 
 
-int carIsKilled(Game* game, CarInfo* cars, SDL* sdl) {
+int carIsKilled(Game* game, CarInfo* cars, SDL* sdl, int y) {
 	// return 0 - no one is killed, -1 - citizen is killed, 1 - enemy is killed
 	for (int i = 0; i < ENEMIES; i++) {
 		bool isEnemy = cars[i].isEnemy;
 		if (cars[i].coord.x != 0) {
-			if ((inFault(game->bullet.coord.y, cars[i].coord.y, cars[i].car->h/2) || 
-				game->bullet.coord.y2 && inFault(game->bullet.coord.y2, cars[i].coord.y, cars[i].car->h / 2)) &&
+			if (inFault(y, cars[i].coord.y, cars[i].car->h/2) &&
 				inFault(game->bullet.coord.x, cars[i].coord.x, cars[i].car->w / 2)) {
 				// Car is killed
 				cars[i].car = sdl->cars[ENEMIES];
 				cars[i].isEnemy = false;
-				game->bullet.speed = 0;
+				// game->bullet.speed = 0;
 				return isEnemy ? 1 : -1;
 			}
 		}
