@@ -17,7 +17,7 @@ int initGame(SDL* sdl) {
 	sdl->cars[3] = SDL_LoadBMP("./assets/car_lilac.bmp");
 	sdl->cars[4] = SDL_LoadBMP("./assets/car_red.bmp");
 	sdl->cars[5] = SDL_LoadBMP("./assets/car_destroyed.bmp");
-	
+
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
 		printf("SDL_Init error: %s\n", SDL_GetError());
 		return 1;
@@ -37,7 +37,7 @@ int initGame(SDL* sdl) {
 
 	SDL_SetWindowTitle(sdl->window, "Spy Hunter | Ruslan Rabadanov 196634");
 	sdl->scrtex = SDL_CreateTexture(sdl->renderer, SDL_PIXELFORMAT_ARGB8888,
-				SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+		SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 	SDL_ShowCursor(SDL_DISABLE);
 
 	if (sdl->charset == NULL || sdl->cars == NULL || sdl->playerCars == NULL) {
@@ -197,7 +197,7 @@ void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps) {
 
 	sprintf(text, "Esc - wyjscie");
 	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 30, text, sdl.charset);
-	
+
 	sprintf(text, "\030/\031 - przyspieszenie/zwolnienie");
 	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 60, text, sdl.charset);
 
@@ -230,7 +230,7 @@ int DrawPlayer(Game* game, SDL* sdl) {
 		}
 	}
 	DrawSurface(sdl->screen, game->player.sprite, game->player.coord.x, game->player.coord.y);
-	
+
 	return 0;
 }
 
@@ -325,7 +325,7 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 			}
 		}
 	}
-	
+
 
 	for (int i = 0; i < ENEMIES; i++) {
 		if (cars[i].coord.x != 0) {
@@ -345,7 +345,7 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 	if (game->power.sprite == NULL && int(game->totalDistance * 1000) % 429 == 0) {
 		printf("DrawRandomPower if\n");
 		game->power.sprite = sdl->powerup[0];
-		game->power.coord.y = - game->power.sprite->h / 2;
+		game->power.coord.y = -game->power.sprite->h / 2;
 		int counter = 0;
 		do {
 			game->power.coord.x = rand() % (SCREEN_WIDTH / 3) + SCREEN_WIDTH / 3;
@@ -362,10 +362,10 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 		}
 		if (inFault(game->power.coord.x, game->player.coord.x, game->player.sprite->w / 2 + game->power.sprite->w / 2) &&
 			inFault(game->power.coord.y, game->player.coord.y, game->player.sprite->h / 2 + game->power.sprite->h / 2)) {
-				game->player.power.sprite = game->power.sprite;
-				game->player.power.time = 5;
-				game->power.sprite = NULL;
-				printf("Power sprite = NULL | 344\n");
+			game->player.power.sprite = game->power.sprite;
+			game->player.power.time = 5;
+			game->power.sprite = NULL;
+			printf("Power sprite = NULL | 344\n");
 		}
 	}
 	else if (game->player.power.time <= 0) {
@@ -374,7 +374,7 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 }
 
 
-void NewGame( Game* game, CarInfo * cars) {
+void NewGame(Game* game, CarInfo* cars) {
 	SpawnPlayer(game, cars);
 	game->player.sprite = SDL_LoadBMP("./assets/player_1.bmp");
 	game->player.colorIndex = 0;
@@ -397,43 +397,52 @@ void NewGame( Game* game, CarInfo * cars) {
 };
 
 
-void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
+void SaveGame(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]) {
 	FILE* out;
 	time_t now = time(0);
 	tm* time = localtime(&now);
-	
+
 	// save game
-	char path[50] = "saves/";
-	strftime(path + 6, 50, "%d-%m-%Y_%H-%M-%S", time);
+	char path[26] = "saves/";
+	strftime(path + 6, 26, "%d-%m-%Y_%H-%M-%S", time);
+	for (int i = 0; i < 10; i++) {
+		if (savedGames[i][0] == '\0') {
+			strftime(savedGames[i], 20, "%d-%m-%Y_%H-%M-%S", time);
+			break;
+		}
+	}
+
 	out = fopen(path, "wb");
 	fwrite(game, sizeof(Game), 1, out);
 	fclose(out);
-	
+
 	// save cars
-	char path2[50] = "saves/cars/";
-	strftime(path2 + 11, 50, "%d-%m-%Y_%H-%M-%S", time);
+	char path2[31] = "saves/cars/";
+	strftime(path2 + 11, 31, "%d-%m-%Y_%H-%M-%S", time);
 	out = fopen(path2, "wb");
 	fwrite(cars, sizeof(CarInfo), 5, out);
 	fclose(out);
 }
 
 
-void LoadGame(Game* game, CarInfo* cars, SDL* sdl) {
+void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char fileName[20]) {
 	FILE* in;
 	SDL_Surface* tempSpritePlayerPower = game->player.power.sprite;
 	SDL_Surface* tempSpritePower = game->power.sprite;
-	char path[50] = "saves/10-01-2023_21-55-22";
+	char path[26] = "saves/";
+	snprintf(path + 6, 26, "%s", fileName);
 	in = fopen(path, "rb");
 	fread(game, sizeof(Game), 1, in);
 	fclose(in);
 	game->player.sprite = sdl->playerCars[game->player.colorIndex];
 	game->player.power.sprite = tempSpritePlayerPower;
 	game->power.sprite = tempSpritePower;
-	
-	
+
+
 	CarInfo tempCars[5];
 	SDL_Surface* tempSurfaces[5];
-	char path2[50] = "saves/cars/10-01-2023_21-55-22";
+	char path2[31] = "saves/cars/";
+	snprintf(path2 + 11, 31, "%s", fileName);
 	in = fopen(path2, "rb");
 	fread(tempCars, sizeof(CarInfo), 5, in);
 	fclose(in);
@@ -441,7 +450,7 @@ void LoadGame(Game* game, CarInfo* cars, SDL* sdl) {
 		tempCars[i].car = sdl->cars[tempCars[i].colorIndex];
 		cars[i] = tempCars[i];
 	}
-	
+
 	/*
 	fread(&tempGame, sizeof(Game), 1, in);
 	*game = tempGame;
@@ -462,6 +471,74 @@ void LoadGame(Game* game, CarInfo* cars, SDL* sdl) {
 	*/
 }
 
+
+void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]) {
+	char text[30];
+	int fileNameIndex = -1;
+	for (int i = 0; i < 10; i++) {
+		if (savedGames[i][0] == '\0') break;
+		sprintf(text, "%d. %s", i, savedGames[i]);
+		DrawString(sdl->screen, 40, SCREEN_HEIGHT / 4 + i * 15, text, sdl->charset);
+		RenderSurfaces(sdl);
+	}
+	do {
+		while (SDL_PollEvent(&sdl->event)) {
+			switch (sdl->event.type) {
+			case SDL_KEYUP:
+				if (sdl->event.key.keysym.sym == SDLK_0) fileNameIndex = 0;
+				else if (sdl->event.key.keysym.sym == SDLK_1) fileNameIndex = 1;
+				else if (sdl->event.key.keysym.sym == SDLK_2) fileNameIndex = 2;
+				else if (sdl->event.key.keysym.sym == SDLK_3) fileNameIndex = 3;
+				else if (sdl->event.key.keysym.sym == SDLK_4) fileNameIndex = 4;
+				else if (sdl->event.key.keysym.sym == SDLK_5) fileNameIndex = 5;
+				else if (sdl->event.key.keysym.sym == SDLK_6) fileNameIndex = 6;
+				else if (sdl->event.key.keysym.sym == SDLK_7) fileNameIndex = 7;
+				else if (sdl->event.key.keysym.sym == SDLK_8) fileNameIndex = 8;
+				else if (sdl->event.key.keysym.sym == SDLK_9) fileNameIndex = 9;
+				else if (sdl->event.key.keysym.sym == SDLK_BACKSPACE) fileNameIndex = -2;
+				break;
+			};
+		}
+		// warn
+		if (savedGames[0][0] == '\0') {
+			DrawString(sdl->screen, 5, SCREEN_HEIGHT / 4 - 15, "It's empty. Press backspace to exit.", sdl->charset);
+			RenderSurfaces(sdl);
+		}
+		else if (savedGames[fileNameIndex][0] == '\0') {
+			DrawString(sdl->screen, 40, SCREEN_HEIGHT / 4 - 15, "Incorrect number. Try again.", sdl->charset);
+			RenderSurfaces(sdl);
+			fileNameIndex = -1;
+		}
+	} while (fileNameIndex == -1);
+	if (fileNameIndex < 0) return;
+	//GetFileName(game, cars, sdl, savedGames);
+	LoadGame(game, cars, sdl, savedGames[fileNameIndex]);
+}
+
+
+void GetFileName(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]) {
+	int fileNameIndex = -1;
+	do {
+		while (SDL_PollEvent(&sdl->event)) {
+			switch (sdl->event.type) {
+			case SDL_KEYUP:
+				if (sdl->event.key.keysym.sym == SDLK_0) fileNameIndex = 0;
+				else if (sdl->event.key.keysym.sym == SDLK_1) fileNameIndex = 1;
+				else if (sdl->event.key.keysym.sym == SDLK_2) fileNameIndex = 2;
+				else if (sdl->event.key.keysym.sym == SDLK_3) fileNameIndex = 3;
+				else if (sdl->event.key.keysym.sym == SDLK_4) fileNameIndex = 4;
+				else if (sdl->event.key.keysym.sym == SDLK_5) fileNameIndex = 5;
+				else if (sdl->event.key.keysym.sym == SDLK_6) fileNameIndex = 6;
+				else if (sdl->event.key.keysym.sym == SDLK_7) fileNameIndex = 7;
+				else if (sdl->event.key.keysym.sym == SDLK_8) fileNameIndex = 8;
+				else if (sdl->event.key.keysym.sym == SDLK_9) fileNameIndex = 9;
+				break;
+			};
+		}
+	} while (fileNameIndex == -1);
+
+	LoadGame(game, cars, sdl, savedGames[fileNameIndex]);
+}
 
 
 void SpawnPlayer(Game* game, CarInfo* cars) {
@@ -519,7 +596,7 @@ bool numbersInArray(int x, int y, CarInfo* object) {
 
 
 // Проверка для пикселей по периметру машины, находится ли позиция в другом объекте.
-bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo *cars, SDL* sdl) {
+bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* cars, SDL* sdl) {
 	int x1 = game->player.coord.x;
 	int y1 = game->player.coord.y;
 	int x2 = object->coord.x;
@@ -648,7 +725,7 @@ bool freeSpace(CarInfo* car, CarInfo* cars) {
 	for (int i = 0; i < ENEMIES; i++) {
 		// Если попал на свою же машину
 		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x) continue;
-		
+
 		if (inFault(x, cars[i].coord.x, car->car->w + 5) && inFault(y, cars[i].coord.y, car->car->h + 5))
 			return false;
 	}
@@ -670,7 +747,7 @@ int modul(int num) {
 bool canGo(CarInfo* car, CarInfo* cars, int direction) {
 	// direction: -1 -> вверх, 1 -> вниз
 	int deltaY;
-	
+
 	for (int i = 0; i < ENEMIES; i++) {
 		// Если попал на свою же машину
 		if (cars[i].coord.x == 0 || cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x ||
@@ -679,7 +756,7 @@ bool canGo(CarInfo* car, CarInfo* cars, int direction) {
 		// WARN
 		if (direction == -1) deltaY = car->coord.y - cars[i].coord.y;
 		else deltaY = cars[i].coord.y - car->coord.y;
-		
+
 		if (deltaY > 0 && deltaY < car->car->h + 10) {
 			return false;
 		}
@@ -693,7 +770,7 @@ bool canSpawn(Game* game, CarInfo* cars) {
 	for (int i = 0; i < ENEMIES; i++) {
 		if (cars[i].coord.x == 0) continue;
 		deltaY = cars[i].coord.y - game->power.coord.y;
-		if (deltaY > 0 && deltaY < cars[i].car->h/2 + game->power.sprite->h/2 + 10) {
+		if (deltaY > 0 && deltaY < cars[i].car->h / 2 + game->power.sprite->h / 2 + 10) {
 			return false;
 		}
 	}
@@ -717,7 +794,7 @@ int carIsKilled(Game* game, CarInfo* cars, SDL* sdl, int y) {
 	for (int i = 0; i < ENEMIES; i++) {
 		bool isEnemy = cars[i].isEnemy;
 		if (cars[i].coord.x != 0) {
-			if (inFault(y, cars[i].coord.y, cars[i].car->h/2) &&
+			if (inFault(y, cars[i].coord.y, cars[i].car->h / 2) &&
 				inFault(game->bullet.coord.x, cars[i].coord.x, cars[i].car->w / 2)) {
 				// Car is killed
 				cars[i].car = sdl->cars[ENEMIES];
