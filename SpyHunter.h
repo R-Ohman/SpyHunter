@@ -5,6 +5,7 @@
 #include <time.h>
 #include<string.h>
 #include <stdlib.h>
+#include<dirent.h>
 #include"./SDL2-2.0.10/include/SDL.h"
 #include"./SDL2-2.0.10/include/SDL_main.h"
 
@@ -19,6 +20,7 @@
 struct Game {
 	struct {
 		SDL_Surface* sprite;
+		int colorIndex;
 		
 		struct Coord {
 			int x;
@@ -81,6 +83,7 @@ struct CarInfo {
 	
 	double speed;
 	bool isEnemy;
+	int colorIndex;
 };
 
 
@@ -148,10 +151,10 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl);
 void NewGame(Game* game, CarInfo* cars);
 
 
-void SaveGame(Game* game, CarInfo* cars);
+void SaveGame(Game* game, CarInfo* cars, SDL* sdl);
 
 
-void LoadGame(Game* game, CarInfo* cars);
+void LoadGame(Game* game, CarInfo* cars, SDL* sdl);
 
 
 void SpawnPlayer(Game* game, CarInfo* cars);

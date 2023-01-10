@@ -4,10 +4,9 @@
 #define REFRESH_RATE 1/SECONDS_BETWEEN_REFRESH
 
 /*
-ПЛАН НА 8.01
+ПЛАН НА 10.01
 - пересмотреть функции, убрать все ненужное
-- пофиксить спавн PowerUp'а
-- добавить паузу, сохранение игры в файл
+- доделать сохранение игры в файл (считывание)
 
 БАГИ:
 
@@ -20,6 +19,7 @@
 
 
 Проверить:
+- пофиксить спавн PowerUp'а
 - при сбитии вражеского авто, которое уперлось (снизу) в другое авто, оно отодвигается не в ту сторону
 - когда 2 атакующих авто прилегают друг к другу, они не атакуют
 */
@@ -28,10 +28,15 @@
 int main(int argc, char** argv) {
 	SDL sdl = { NULL };
 	Game game = { NULL };
-	CarInfo cars[5] = { NULL };
+	CarInfo cars[5];
+	char savedGames[20][20];
 	if (initGame(&sdl)) return 1;
 	// initialize the game
 	NewGame(&game, cars);
+	for (int i = 0; i < ENEMIES; i++) {
+		cars[i].car = sdl.cars[0];
+		cars[i].colorIndex = 0;
+	}
 	int timeStart = game.time.startGame, timeEnd, quit = 0, frames = 0, roadMarkingPos = SCREEN_HEIGHT - 100;
 	double fpsTimer = 0, fps = 0;
 
@@ -89,8 +94,8 @@ int main(int argc, char** argv) {
 				if (sdl.event.key.keysym.sym == SDLK_ESCAPE) quit = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_n) NewGame(&game, cars);
 				else if (sdl.event.key.keysym.sym == SDLK_p) game.pause = !game.pause;
-				else if (sdl.event.key.keysym.sym == SDLK_s) SaveGame(&game, cars);
-				else if (sdl.event.key.keysym.sym == SDLK_l) LoadGame(&game, cars);
+				else if (sdl.event.key.keysym.sym == SDLK_s) SaveGame(&game, cars, &sdl);
+				else if (sdl.event.key.keysym.sym == SDLK_l) LoadGame(&game, cars, &sdl);
 				else if (sdl.event.key.keysym.sym == SDLK_UP) game.player.speed = -1;
 				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.player.speed = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.player.turn = -1;

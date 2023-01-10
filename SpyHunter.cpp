@@ -214,15 +214,19 @@ int DrawPlayer(Game* game, SDL* sdl) {
 	if (game->time.total > GOD_MODE_TIME) {
 		if (game->totalDistance > 100) {
 			game->player.sprite = sdl->playerCars[4];
+			game->player.colorIndex = 4;
 		}
 		else if (game->totalDistance > 80) {
 			game->player.sprite = sdl->playerCars[3];
+			game->player.colorIndex = 3;
 		}
 		else if (game->totalDistance > 40) {
 			game->player.sprite = sdl->playerCars[2];
+			game->player.colorIndex = 2;
 		}
 		else if (game->totalDistance > 20) {
 			game->player.sprite = sdl->playerCars[1];
+			game->player.colorIndex = 1;
 		}
 	}
 	DrawSurface(sdl->screen, game->player.sprite, game->player.coord.x, game->player.coord.y);
@@ -299,6 +303,7 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 			if (cars[i].coord.x == 0 && flag) {
 				int car_num = rand() % 5;
 				cars[i].car = sdl->cars[car_num];
+				cars[i].colorIndex = car_num;
 				cars[i].speed = 200;
 				if (car_num == 0 || car_num == 3) {
 					cars[i].isEnemy = false;
@@ -372,6 +377,7 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 void NewGame( Game* game, CarInfo * cars) {
 	SpawnPlayer(game, cars);
 	game->player.sprite = SDL_LoadBMP("./assets/player_1.bmp");
+	game->player.colorIndex = 0;
 	game->player.lives = 2;
 	game->player.power.sprite = NULL;
 	game->player.power.time = 0;
@@ -391,49 +397,49 @@ void NewGame( Game* game, CarInfo * cars) {
 };
 
 
-void SaveGame(Game* game, CarInfo* cars) {
+void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
 	FILE* out;
 	time_t now = time(0);
-	struct {
-		Game* game = game;
-		CarInfo* cars = cars;
-	} save;
-	char name[50] = "saves/";
-	strftime(name + 6, 50, "%d-%m-%Y_%H-%M-%S", localtime(&now));
-	out = fopen(name, "wb");
-	fwrite(&save, sizeof(save), 1, out);
-	fclose(out);	
+	tm* time = localtime(&now);
+	
+	// save game
+	char path[50] = "saves/";
+	strftime(path + 6, 50, "%d-%m-%Y_%H-%M-%S", time);
+	out = fopen(path, "wb");
+	fwrite(game, sizeof(Game), 1, out);
+	fclose(out);
+	
+	// save cars
+	char path2[50] = "saves/cars/";
+	strftime(path2 + 11, 50, "%d-%m-%Y_%H-%M-%S", time);
+	out = fopen(path2, "wb");
+	fwrite(cars, sizeof(CarInfo), 5, out);
+	fclose(out);
 }
 
 
-void LoadGame(Game* game, CarInfo* cars) {
+void LoadGame(Game* game, CarInfo* cars, SDL* sdl) {
 	FILE* in;
-	Game tempGame;
-	SDL_Surface* tempSpritePlayer = game->player.sprite;
 	SDL_Surface* tempSpritePlayerPower = game->player.power.sprite;
 	SDL_Surface* tempSpritePower = game->power.sprite;
-	char name[50] = "saves/08-01-2023_22-00-01";
-	in = fopen(name, "rb");
-
-	struct {
-		Game* game;
-		CarInfo* cars;
-	} save;
-
-	SDL_Surface* tmpCars[5];
-
-	for (int i = 0; i < ENEMIES; i++) {
-		tmpCars[i] = cars[i].car;
-	}
-	
-	fread(&save, sizeof(save), 1, in);
-	*game = *save.game;
-	game->player.sprite = tempSpritePlayer;
+	char path[50] = "saves/10-01-2023_21-55-22";
+	in = fopen(path, "rb");
+	fread(game, sizeof(Game), 1, in);
+	fclose(in);
+	game->player.sprite = sdl->playerCars[game->player.colorIndex];
 	game->player.power.sprite = tempSpritePlayerPower;
 	game->power.sprite = tempSpritePower;
-	*cars = *save.cars;
+	
+	
+	CarInfo tempCars[5];
+	SDL_Surface* tempSurfaces[5];
+	char path2[50] = "saves/cars/10-01-2023_21-55-22";
+	in = fopen(path2, "rb");
+	fread(tempCars, sizeof(CarInfo), 5, in);
+	fclose(in);
 	for (int i = 0; i < ENEMIES; i++) {
-		cars[i].car = tmpCars[i];
+		tempCars[i].car = sdl->cars[tempCars[i].colorIndex];
+		cars[i] = tempCars[i];
 	}
 	
 	/*
@@ -454,9 +460,6 @@ void LoadGame(Game* game, CarInfo* cars) {
 		cars[i].car = tmpCars[i];
 	}
 	*/
-
-	
-	fclose(in);
 }
 
 
@@ -533,6 +536,7 @@ bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo *c
 				{
 					// Car is destroyed
 					object->car = sdl->cars[ENEMIES];
+					object->colorIndex = ENEMIES;
 					if (object->isEnemy) {
 						if (!game->time.scoreFreeze) {
 							game->score += 1000;
@@ -717,6 +721,7 @@ int carIsKilled(Game* game, CarInfo* cars, SDL* sdl, int y) {
 				inFault(game->bullet.coord.x, cars[i].coord.x, cars[i].car->w / 2)) {
 				// Car is killed
 				cars[i].car = sdl->cars[ENEMIES];
+				cars[i].colorIndex = ENEMIES;
 				cars[i].isEnemy = false;
 				// game->bullet.speed = 0;
 				return isEnemy ? 1 : -1;
