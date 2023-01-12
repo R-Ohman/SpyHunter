@@ -9,6 +9,7 @@
 #include"./SDL2-2.0.10/include/SDL.h"
 #include"./SDL2-2.0.10/include/SDL_main.h"
 
+
 #define SCREEN_WIDTH	960
 #define SCREEN_HEIGHT	720
 #define GOD_MODE_TIME	15

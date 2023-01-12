@@ -99,6 +99,7 @@ int main(int argc, char** argv) {
 				else if (sdl.event.key.keysym.sym == SDLK_s)  SaveGame(&game, cars, &sdl);
 				else if (sdl.event.key.keysym.sym == SDLK_l) {
 					ShowSavedGames(&game, cars, &sdl);
+					printf("Player pos: %d %d\n", game.player.coord.x, game.player.coord.y);
 					timeStart = SDL_GetTicks();
 				}
 				else if (sdl.event.key.keysym.sym == SDLK_UP) game.player.speed = -1;

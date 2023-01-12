@@ -411,18 +411,52 @@ void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
 	time_t now = time(0);
 	tm* time = localtime(&now);
 	
-	char path[30] = "saves/";
-	strftime(path + 6, 26, "%d-%m-%Y_%H-%M-%S", time);
-	strcat(path, ".dat");
-	
+	char* path = new char[30];
+	strftime(path, 30, "saves/%d-%m-%Y_%H-%M-%S.dat", time);
+	//strcpy(path, "save/");
+	out = fopen(path, "wb");
+	if (out == NULL) {
+		// если уже была загрузка, курсор уже находится в saves/
+		strftime(path, 30, "%d-%m-%Y_%H-%M-%S.dat", time);
+		out = fopen(path, "wb");
+	}
 	Save save;
 	save.game = *game;
 	for (int i = 0; i < ENEMIES; i++) {
 		save.cars[i] = cars[i];
+		printf("save.cars[%d] = %p\n", i, &save.cars[i]);
 	}
-
-	out = fopen(path, "wb");
-	fwrite(&save, sizeof(Save), 1, out);
+	if (game->player.power.sprite == NULL) save.game.player.power.sprite = sdl->powerup[0];
+	if (game->bullet.sprite == NULL) save.game.bullet.sprite = sdl->bullet;
+	if (game->power.sprite == NULL) save.game.power.sprite = sdl->powerup[0];
+	printf("Save adress: %p\n", &save);
+	printf("path = %s\n", path);
+	// print all variables from save to console
+	/*printf("Save adress: %p\n", &save);
+	printf("Save.game: %p\n", &save.game);
+	printf("Save.game.player: %p\n", &save.game.player);
+	printf("Save.game.player.coord: %p\n", &save.game.player.coord);
+	printf("Save.game.player.power: %p\n", &save.game.player.power);
+	printf("Save.game.player.power.sprite: %p\n", save.game.player.power.sprite);
+	printf("Save.game.player.sprite: %p\n", save.game.player.sprite);
+	printf("Save.game.power: %p\n", &save.game.power);
+	printf("Save.game.power.sprite: %p\n", save.game.power.sprite);
+	printf("Save.game.time: %p\n", &save.game.time);
+	printf("Save.game.bullet: %p\n", &save.game.bullet);
+	printf("Save.game.bullet.sprite: %p\n", &save.game.bullet.sprite);
+	printf("Save.game.bullet.coord: %p\n", &save.game.bullet.coord);
+	printf("Save.cars: %p\n", &save.cars);*/
+	for (int i = 0; i < ENEMIES; i++) {
+		printf("Save.cars[%d]: %p\n", i, &save.cars[i]);
+		printf("Save.cars[%d].car: %p\n", i, save.cars[i].car);
+		if (cars[i].car == NULL) save.cars[i].car = sdl->cars[0];
+	}
+	
+	if (fwrite(&save, sizeof(Save), 1, out) != 1)
+	{
+		printf("FWRITE ERROR\n");
+		return;
+	}
 	fclose(out);
 }
 
@@ -432,6 +466,7 @@ void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char filePath[250]) {
 
 	Save save;
 	in = fopen(filePath, "rb");
+	printf("FIle path: %s\n", filePath);
 	fread(&save, sizeof(Save), 1, in);
 	fclose(in);
 	printf("432\n");
@@ -451,6 +486,7 @@ void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char filePath[250]) {
 	}
 	printf("Car loaded pos: %d %d\n", save.game.player.coord.x, save.game.player.coord.y);
 	printf("Car position: %d %d\n", game->player.coord.x, game->player.coord.y);
+	printf("Load (save) adress: %p\n", &save);
 }
 
 
@@ -468,7 +504,7 @@ void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl) {
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = NULL;
 	ofn.nMaxFileTitle = 0;
-	ofn.lpstrInitialDir = "E:/Studying/1 sem/PP/Project2/saves";
+	ofn.lpstrInitialDir = "E:/Studying/1 sem/PP/Project2";
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
 	if (GetOpenFileNameA(&ofn) == TRUE) {
