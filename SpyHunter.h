@@ -86,6 +86,12 @@ struct CarInfo {
 };
 
 
+struct Save {
+	Game* game;
+	CarInfo cars[5];
+};
+
+
 struct SDL {
 	SDL_Event event;
 	SDL_Surface* screen;

@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
 				if (sdl.event.key.keysym.sym == SDLK_ESCAPE) quit = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_n) NewGame(&game, cars);
 				else if (sdl.event.key.keysym.sym == SDLK_p) game.pause = !game.pause;
-				else if (sdl.event.key.keysym.sym == SDLK_s) SaveGame(&game, cars, &sdl, savedGames);
+				else if (sdl.event.key.keysym.sym == SDLK_s)  SaveGame(&game, cars, &sdl, savedGames);
 				else if (sdl.event.key.keysym.sym == SDLK_l) {
 					ShowSavedGames(&game, cars, &sdl, savedGames);
 					timeStart = SDL_GetTicks();

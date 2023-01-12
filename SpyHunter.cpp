@@ -401,8 +401,7 @@ void SaveGame(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]) {
 	FILE* out;
 	time_t now = time(0);
 	tm* time = localtime(&now);
-
-	// save game
+	
 	char path[26] = "saves/";
 	strftime(path + 6, 26, "%d-%m-%Y_%H-%M-%S", time);
 	for (int i = 0; i < 10; i++) {
@@ -411,16 +410,15 @@ void SaveGame(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]) {
 			break;
 		}
 	}
+	
+	Save save;
+	save.game = game;
+	for (int i = 0; i < ENEMIES; i++) {
+		save.cars[i] = cars[i];
+	}
 
 	out = fopen(path, "wb");
-	fwrite(game, sizeof(Game), 1, out);
-	fclose(out);
-
-	// save cars
-	char path2[31] = "saves/cars/";
-	strftime(path2 + 11, 31, "%d-%m-%Y_%H-%M-%S", time);
-	out = fopen(path2, "wb");
-	fwrite(cars, sizeof(CarInfo), 5, out);
+	fwrite(&save, sizeof(Game), 1, out);
 	fclose(out);
 }
 
@@ -431,44 +429,24 @@ void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char fileName[20]) {
 	SDL_Surface* tempSpritePower = game->power.sprite;
 	char path[26] = "saves/";
 	snprintf(path + 6, 26, "%s", fileName);
+
+	Save save;
+	
 	in = fopen(path, "rb");
-	fread(game, sizeof(Game), 1, in);
+	fread(&save, sizeof(Game), 1, in);
 	fclose(in);
+
+	game = save.game;
+	for (int i = 0; i < ENEMIES; i++) {
+		cars[i] = save.cars[i];
+	}
 	game->player.sprite = sdl->playerCars[game->player.colorIndex];
 	game->player.power.sprite = tempSpritePlayerPower;
 	game->power.sprite = tempSpritePower;
 
-
-	CarInfo tempCars[5];
-	SDL_Surface* tempSurfaces[5];
-	char path2[31] = "saves/cars/";
-	snprintf(path2 + 11, 31, "%s", fileName);
-	in = fopen(path2, "rb");
-	fread(tempCars, sizeof(CarInfo), 5, in);
-	fclose(in);
 	for (int i = 0; i < ENEMIES; i++) {
-		tempCars[i].car = sdl->cars[tempCars[i].colorIndex];
-		cars[i] = tempCars[i];
+		cars[i].car = sdl->cars[save.cars[i].colorIndex];
 	}
-
-	/*
-	fread(&tempGame, sizeof(Game), 1, in);
-	*game = tempGame;
-	game->player.sprite = tempSpritePlayer;
-	game->player.power.sprite = tempSpritePlayerPower;
-	game->power.sprite = tempSpritePower;
-
-	CarInfo* tmpEnemies[5];
-	SDL_Surface* tmpCars[5] = { NULL };
-	for (int i = 0; i < ENEMIES; i++) {
-		tmpCars[i] = cars[i].car;
-	}
-	fread(&tmpEnemies, sizeof(CarInfo), 5, in);
-	for (int i = 0; i < ENEMIES; i++) {
-		cars[i] = *tmpEnemies[i];
-		cars[i].car = tmpCars[i];
-	}
-	*/
 }
 
 
