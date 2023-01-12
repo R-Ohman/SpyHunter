@@ -8,14 +8,18 @@
 #include <stdlib.h>
 #include"./SDL2-2.0.10/include/SDL.h"
 #include"./SDL2-2.0.10/include/SDL_main.h"
+#include "vector.h"
 
 
-#define SCREEN_WIDTH	960
+#define SCREEN_WIDTH	1280
 #define SCREEN_HEIGHT	720
 #define GOD_MODE_TIME	15
 #define ENEMIES			5
 #define CAR_SPEED		250
-#define DATE_FORMAT		"%x-%I:%M%p"
+#define DATE_FORMAT		"%d-%m-%Y_%H-%M-%S.dat"
+#define LEFT_BORDER		SCREEN_WIDTH / 2 - game->roadWidth/2
+#define RIGHT_BORDER	SCREEN_WIDTH / 2 + game->roadWidth/2
+#define OUT_ROAD		90
 
 
 struct Game {
@@ -70,6 +74,7 @@ struct Game {
 	} power;
 	
 	double totalDistance;
+	double roadWidth;
 	double score;
 	bool pause;
 };
@@ -174,12 +179,15 @@ void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl);
 void SpawnPlayer(Game* game, CarInfo* cars);
 
 
+void changeTimers(Game* game);
+
+
 // check if X and Y coordinates are inside a screen
 bool inArray(int x, int y);
 
 
 // Check ifhorizontal position is out of screen and do it in the range.
-void fixCoordX(int* horizontal);
+bool onTheRoad(int* horizontal, Game* game);
 
 
 // Check if vertical position is out of screen and do it in the range.
@@ -194,7 +202,7 @@ bool numbersInArray(int x, int y, CarInfo* object);
 bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo *cars, SDL* sdl);
 
 
-bool isDestroyed(CarInfo* car, SDL* sdl);
+bool isDestroyed(CarInfo* car, SDL* sdl, Game* game);
 
 
 

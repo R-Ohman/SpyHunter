@@ -129,10 +129,10 @@ void DrawSurface(SDL_Surface* screen, SDL_Surface* sprite, int x, int y) {
 
 void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
 	int grey = SDL_MapRGB(sdl->screen->format, 105, 105, 105);
-	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, 0, SCREEN_WIDTH / 3, SCREEN_HEIGHT, grey, grey);
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 - (int)game->roadWidth / 2, 0, game->roadWidth, SCREEN_HEIGHT, grey, grey);
 	int grey_dark = SDL_MapRGB(sdl->screen->format, 40, 40, 40);
-	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3 - SCREEN_WIDTH / 30, 0, SCREEN_WIDTH / 30, SCREEN_HEIGHT, grey_dark, grey_dark);
-	DrawRectangle(sdl->screen, SCREEN_WIDTH * 2 / 3, 0, SCREEN_WIDTH / 30, SCREEN_HEIGHT, grey_dark, grey_dark);
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 - SCREEN_WIDTH / 40 - (int)game->roadWidth / 2, 0, SCREEN_WIDTH / 40, SCREEN_HEIGHT, grey_dark, grey_dark);
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 + (int)game->roadWidth / 2, 0, SCREEN_WIDTH / 40, SCREEN_HEIGHT, grey_dark, grey_dark);
 	if (game->player.speed != 0) {
 		*roadMarkingPos += (game->player.speed > 0 ? 4 * game->player.speed : (-7 * game->player.speed)) * game->time.delta * 100;
 	}
@@ -154,7 +154,7 @@ void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
 
 void DrawRoadRectangle(SDL_Surface* screen, int y) {
 	int grey_light = SDL_MapRGB(screen->format, 192, 192, 192);
-	DrawRectangle(screen, SCREEN_WIDTH / 2, y, SCREEN_WIDTH / 50, SCREEN_HEIGHT / 7, grey_light, grey_light);
+	DrawRectangle(screen, SCREEN_WIDTH / 2, y, SCREEN_WIDTH / 70, SCREEN_HEIGHT / 7, grey_light, grey_light);
 };
 
 
@@ -245,7 +245,7 @@ void DrawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 	if (game->bullet.coord.x == 0) return;
 	if (game->bullet.coord.y > -game->bullet.sprite->h || game->bullet.coord.y2 != 0 && game->bullet.coord.y2 < SCREEN_HEIGHT + game->bullet.sprite->h) {
 		if (game->bullet.coord.y > -game->bullet.sprite->h) game->bullet.coord.y -= game->time.delta * game->bullet.speed;
-		if (game->bullet.coord.y2) game->bullet.coord.y2 += game->time.delta * game->bullet.speed;
+		if (game->bullet.coord.y2) game->bullet.coord.y2 += game->time.delta * game->bullet.speed * 2;
 		DrawSurface(sdl->screen, game->bullet.sprite, game->bullet.coord.x, game->bullet.coord.y);
 		if (game->bullet.coord.y2) DrawSurface(sdl->screen, game->bullet.sprite, game->bullet.coord.x, game->bullet.coord.y2);
 		int resultUp = carIsKilled(game, cars, sdl, game->bullet.coord.y);
@@ -290,7 +290,7 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 		if (cars[i].coord.x != 0) {
 			// Если уничтоженное, то слетает с дороги быстрее
 			// Если пауза - умножаем на 0 -> не двигаемся
-			cars[i].speed = (isDestroyed(&cars[i], sdl) ? 2 : 1) * (!game->pause) * CAR_SPEED;
+			cars[i].speed = (isDestroyed(&cars[i], sdl, game) ? 2 : 1) * (!game->pause) * CAR_SPEED;
 			double attackDirection = canAttack(&cars[i], game, cars);
 			if (cars[i].isEnemy && attackDirection) {
 				// canAttack определяет в какую сторону поедет актаковать
@@ -321,7 +321,7 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 				// Над экраном на высоту сгенерированного авто
 				int iterCounter = 0;
 				do {
-					cars[i].coord.x = rand() % (SCREEN_WIDTH / 3) + SCREEN_WIDTH / 3;
+					cars[i].coord.x = rand() % ((int)game->roadWidth) + LEFT_BORDER;
 				} while (!canGo(&cars[i], cars, 1)); // isFreePlace(&car, cars)
 				flag = false;
 				break;
@@ -354,7 +354,7 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 		game->power.coord.y = -game->power.sprite->h / 2;
 		int counter = 0;
 		do {
-			game->power.coord.x = rand() % (SCREEN_WIDTH / 3) + SCREEN_WIDTH / 3;
+			game->power.coord.x = rand() % ((int)game->roadWidth) + LEFT_BORDER;
 		} while (++counter < 30 && !canSpawn(game, cars));
 	}
 	else if (game->power.sprite != NULL && game->player.power.sprite == NULL) {
@@ -381,9 +381,7 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 
 
 void NewGame(Game* game, CarInfo* cars, SDL* sdl) {
-	printf("New Game before spawn\n");
 	SpawnPlayer(game, cars);
-	printf("New Game after spawn\n");
 	game->player.sprite = sdl->playerCars[0];
 	game->player.colorIndex = 0;
 	game->player.lives = 2;
@@ -402,7 +400,7 @@ void NewGame(Game* game, CarInfo* cars, SDL* sdl) {
 	game->bullet.coord.y = -200;
 	game->bullet.coord.y2 = SCREEN_HEIGHT + 200;
 	game->pause = false;
-	printf("New Game after Init\n");
+	game->roadWidth = SCREEN_WIDTH / 4;
 };
 
 
@@ -413,12 +411,15 @@ void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
 	
 	char* path = new char[30];
 	strftime(path, 30, "saves/%d-%m-%Y_%H-%M-%S.dat", time);
-	//strcpy(path, "save/");
 	out = fopen(path, "wb");
 	if (out == NULL) {
 		// если уже была загрузка, курсор уже находится в saves/
-		strftime(path, 30, "%d-%m-%Y_%H-%M-%S.dat", time);
+		strftime(path, 30, DATE_FORMAT, time);
 		out = fopen(path, "wb");
+		if (out == NULL) {
+			printf("Error while saving game\n");
+			return;
+		}
 	}
 	Save save;
 	save.game = *game;
@@ -429,26 +430,7 @@ void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
 	if (game->player.power.sprite == NULL) save.game.player.power.sprite = sdl->powerup[0];
 	if (game->bullet.sprite == NULL) save.game.bullet.sprite = sdl->bullet;
 	if (game->power.sprite == NULL) save.game.power.sprite = sdl->powerup[0];
-	printf("Save adress: %p\n", &save);
-	printf("path = %s\n", path);
-	// print all variables from save to console
-	/*printf("Save adress: %p\n", &save);
-	printf("Save.game: %p\n", &save.game);
-	printf("Save.game.player: %p\n", &save.game.player);
-	printf("Save.game.player.coord: %p\n", &save.game.player.coord);
-	printf("Save.game.player.power: %p\n", &save.game.player.power);
-	printf("Save.game.player.power.sprite: %p\n", save.game.player.power.sprite);
-	printf("Save.game.player.sprite: %p\n", save.game.player.sprite);
-	printf("Save.game.power: %p\n", &save.game.power);
-	printf("Save.game.power.sprite: %p\n", save.game.power.sprite);
-	printf("Save.game.time: %p\n", &save.game.time);
-	printf("Save.game.bullet: %p\n", &save.game.bullet);
-	printf("Save.game.bullet.sprite: %p\n", &save.game.bullet.sprite);
-	printf("Save.game.bullet.coord: %p\n", &save.game.bullet.coord);
-	printf("Save.cars: %p\n", &save.cars);*/
 	for (int i = 0; i < ENEMIES; i++) {
-		printf("Save.cars[%d]: %p\n", i, &save.cars[i]);
-		printf("Save.cars[%d].car: %p\n", i, save.cars[i].car);
 		if (cars[i].car == NULL) save.cars[i].car = sdl->cars[0];
 	}
 	
@@ -469,24 +451,16 @@ void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char filePath[250]) {
 	printf("FIle path: %s\n", filePath);
 	fread(&save, sizeof(Save), 1, in);
 	fclose(in);
-	printf("432\n");
-	game = &save.game;
+	*game = save.game;
 	for (int i = 0; i < ENEMIES; i++) {
 		cars[i] = save.cars[i];
 	}
-	printf("437\n");
 	game->player.sprite = sdl->playerCars[game->player.colorIndex];
-	printf("439\n");
 	game->player.power.sprite = sdl->powerup[0];
-	printf("441\n");
 	game->power.sprite = sdl->powerup[0];
-	printf("443\n");
 	for (int i = 0; i < ENEMIES; i++) {
 		cars[i].car = sdl->cars[cars[i].colorIndex];
 	}
-	printf("Car loaded pos: %d %d\n", save.game.player.coord.x, save.game.player.coord.y);
-	printf("Car position: %d %d\n", game->player.coord.x, game->player.coord.y);
-	printf("Load (save) adress: %p\n", &save);
 }
 
 
@@ -509,7 +483,7 @@ void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl) {
 
 	if (GetOpenFileNameA(&ofn) == TRUE) {
 		printf("Selected file: %s\n", szFile);
-		NewGame(game, cars, sdl);
+		//NewGame(game, cars, sdl);
 		LoadGame(game, cars, sdl, szFile);
 	}
 	else {
@@ -530,6 +504,20 @@ void SpawnPlayer(Game* game, CarInfo* cars) {
 };
 
 
+void changeTimers(Game* game) {
+	game->time.total += game->time.delta;
+	if (game->time.scoreFreeze > 0) game->time.scoreFreeze -= game->time.delta;
+	if (game->time.scoreFreeze < 0) game->time.scoreFreeze = 0;
+	if (game->time.killMessage > 0) game->time.killMessage -= game->time.delta;
+	if (game->time.deadMessage > 0) game->time.deadMessage -= game->time.delta;
+	if (game->player.power.time > 0) game->player.power.time -= game->time.delta;
+	if ((int)game->time.total % 30 > 17 && (int)game->time.total < 20) game->roadWidth -= game->time.delta * 70;
+	else if ((int)game->time.total % 30 > 2 && (int)game->time.total % 30 < 5) game->roadWidth += game->time.delta * 70;
+	else if ((int)game->time.total % 30 > 10 && (int)game->time.total % 30 < 4) game->roadWidth += game->time.delta * 30;
+	else if ((int)game->time.total % 30 > 25 && (int)game->time.total % 30 < 29) game->roadWidth -= game->time.delta * 30;
+}
+
+
 // check if X and Y coordinates are inside a screen
 bool inArray(int x, int y) {
 	if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT) {
@@ -540,13 +528,14 @@ bool inArray(int x, int y) {
 
 
 // Check ifhorizontal position is out of screen and do it in the range.
-void fixCoordX(int* horizontal) {
-	if (*horizontal < SCREEN_WIDTH / 2 - SCREEN_WIDTH / 6) {
-		*horizontal = SCREEN_WIDTH / 2 - SCREEN_WIDTH / 6;
+bool onTheRoad(int* horizontal, Game* game) {
+	if (*horizontal < LEFT_BORDER - OUT_ROAD) {
+		*horizontal = LEFT_BORDER - OUT_ROAD;
 	}
-	else if (*horizontal > SCREEN_WIDTH / 2 + SCREEN_WIDTH / 6) {
-		*horizontal = SCREEN_WIDTH / 2 + SCREEN_WIDTH / 6;
+	else if (*horizontal > RIGHT_BORDER + OUT_ROAD) {
+		*horizontal = RIGHT_BORDER + OUT_ROAD;
 	}
+	return (*horizontal < LEFT_BORDER || *horizontal > RIGHT_BORDER) ? false : true;
 }
 
 
@@ -586,8 +575,9 @@ bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* c
 			numbersInArray(x1 + object->car->w / 2, y1 + i, object)) {
 			if (isFreePlace(object, cars, game->player.turn)) {
 				object->coord.x += game->player.turn * deltaTime * 300;
-				if (object->coord.x < SCREEN_WIDTH / 3 - object->car->w ||
-					object->coord.x > 2 * SCREEN_WIDTH / 3 + object->car->w)
+				if ((object->coord.x < LEFT_BORDER - object->car->w ||
+					object->coord.x > RIGHT_BORDER + object->car->w)
+					&& object->colorIndex != ENEMIES)
 				{
 					// Car is destroyed
 					object->car = sdl->cars[ENEMIES];
@@ -604,7 +594,6 @@ bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* c
 				}
 			}
 			else {
-				//game->car.coord.x -= game->car.turn * deltaTime * 200;
 				// Проехать нельзя из-за преграды в виде авто, значит игрок сдвигается обратно
 				game->player.coord.x -= game->player.turn * 5; // WARN !!!
 				// Если могу подвинуть авто, скорость - 200, иначе возвращаюсь на позицию назад где скорость 300
@@ -623,9 +612,9 @@ bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* c
 }
 
 
-bool isDestroyed(CarInfo* car, SDL* sdl) {
+bool isDestroyed(CarInfo* car, SDL* sdl, Game* game) {
 	if (car->car == sdl->cars[ENEMIES]
-		|| car->coord.x < SCREEN_WIDTH / 3 - car->car->w || car->coord.x > 2 * SCREEN_WIDTH / 3 + car->car->w) {
+		|| car->coord.x < LEFT_BORDER - car->car->w || car->coord.x > RIGHT_BORDER + car->car->w) {
 		return true;
 	}
 	return false;

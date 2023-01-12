@@ -26,6 +26,8 @@
 
 
 int main(int argc, char** argv) {
+	vector_t bestResults;
+	init(&bestResults);
 	SDL sdl = { NULL };
 	Game game = { NULL };
 	CarInfo cars[5];
@@ -52,22 +54,18 @@ int main(int argc, char** argv) {
 		game.time.delta = (timeEnd - timeStart) * 0.001;
 		timeStart = timeEnd;
 		if (!game.pause) {
-			game.time.total += game.time.delta;
-
-			if (game.time.scoreFreeze > 0) game.time.scoreFreeze -= game.time.delta;
-			if (game.time.scoreFreeze < 0) game.time.scoreFreeze = 0;
-			if (game.time.killMessage > 0) game.time.killMessage -= game.time.delta;
-			if (game.time.deadMessage > 0) game.time.deadMessage -= game.time.delta;
-			if (game.player.power.time > 0) game.player.power.time -= game.time.delta;
-
+			
+			changeTimers(&game);
 			game.totalDistance += game.time.delta - game.player.speed * game.time.delta;
 			// WARN - моэно поменять; дефолтно скорость 0, ибо авто не едет
-			if (!game.time.scoreFreeze) game.score += modul(game.player.speed) * game.totalDistance * game.time.delta / 2;
 
 			game.player.coord.y += (game.player.speed > 0 ? 400 : 100) * game.time.delta * game.player.speed;
 			fixCoordY(&game.player.coord.y);
 			game.player.coord.x += game.player.turn * game.time.delta * 300;
-			fixCoordX(&game.player.coord.x);
+			
+			// ADD SCORE
+			if (onTheRoad(&game.player.coord.x, &game) && !game.time.scoreFreeze)
+				game.score += (game.player.speed < 0 ? 50 : 0 + 50) * game.time.delta;
 		}
 			DrawBullet(cars, &game, &sdl);
 			DrawRandomPower(cars, &game, &sdl);
