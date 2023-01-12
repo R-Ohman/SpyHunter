@@ -3,6 +3,7 @@
 #include<math.h>
 #include<stdio.h>
 #include <time.h>
+#include <windows.h>
 #include<string.h>
 #include <stdlib.h>
 #include"./SDL2-2.0.10/include/SDL.h"
@@ -87,7 +88,7 @@ struct CarInfo {
 
 
 struct Save {
-	Game* game;
+	Game game;
 	CarInfo cars[5];
 };
 
@@ -96,6 +97,7 @@ struct SDL {
 	SDL_Event event;
 	SDL_Surface* screen;
 	SDL_Surface* charset;
+	SDL_Surface* bullet;
 	SDL_Surface* cars[6];
 	SDL_Surface* playerCars[6];
 	SDL_Surface* powerup[2];
@@ -153,19 +155,19 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl);
 void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl);
 
 
-void NewGame(Game* game, CarInfo* cars);
+void NewGame(Game* game, CarInfo* cars, SDL* sdl);
 
 
-void SaveGame(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]);
+void SaveGame(Game* game, CarInfo* cars, SDL* sdl);
 
 
-void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char fileName[20]);
+void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char filePath[250]);
 
 
-void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]);
+void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl);
 
 
-void GetFileName(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]);
+//void GetFileName(Game* game, CarInfo* cars, SDL* sdl);
 
 
 void SpawnPlayer(Game* game, CarInfo* cars);
@@ -219,7 +221,7 @@ bool canGo(CarInfo* car, CarInfo* cars, int direction);
 bool canSpawn(Game* game, CarInfo* cars);
 
 
-void addBullet(Game* game);
+void addBullet(Game* game, SDL* sdl);
 
 
 int carIsKilled(Game* game, CarInfo* cars, SDL* sdl, int y);

@@ -1,9 +1,12 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "SpyHunter.h"
+
 
 int initGame(SDL* sdl) {
 	sdl->screen = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32,
 		0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 	sdl->charset = SDL_LoadBMP("./cs8x8.bmp");
+	sdl->bullet = SDL_LoadBMP("./assets/bullet.bmp");
 	sdl->powerup[0] = SDL_LoadBMP("./assets/powerup_1.bmp");
 	sdl->powerup[1] = SDL_LoadBMP("./assets/powerup_2.bmp");
 	sdl->playerCars[0] = SDL_LoadBMP("./assets/player_1.bmp");
@@ -228,6 +231,9 @@ int DrawPlayer(Game* game, SDL* sdl) {
 			game->player.sprite = sdl->playerCars[1];
 			game->player.colorIndex = 1;
 		}
+		else {
+			game->player.colorIndex = 0;
+		}
 	}
 	DrawSurface(sdl->screen, game->player.sprite, game->player.coord.x, game->player.coord.y);
 
@@ -374,9 +380,11 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 }
 
 
-void NewGame(Game* game, CarInfo* cars) {
+void NewGame(Game* game, CarInfo* cars, SDL* sdl) {
+	printf("New Game before spawn\n");
 	SpawnPlayer(game, cars);
-	game->player.sprite = SDL_LoadBMP("./assets/player_1.bmp");
+	printf("New Game after spawn\n");
+	game->player.sprite = sdl->playerCars[0];
 	game->player.colorIndex = 0;
 	game->player.lives = 2;
 	game->player.power.sprite = NULL;
@@ -394,128 +402,84 @@ void NewGame(Game* game, CarInfo* cars) {
 	game->bullet.coord.y = -200;
 	game->bullet.coord.y2 = SCREEN_HEIGHT + 200;
 	game->pause = false;
+	printf("New Game after Init\n");
 };
 
 
-void SaveGame(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]) {
+void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
 	FILE* out;
 	time_t now = time(0);
 	tm* time = localtime(&now);
 	
-	char path[26] = "saves/";
+	char path[30] = "saves/";
 	strftime(path + 6, 26, "%d-%m-%Y_%H-%M-%S", time);
-	for (int i = 0; i < 10; i++) {
-		if (savedGames[i][0] == '\0') {
-			strftime(savedGames[i], 20, "%d-%m-%Y_%H-%M-%S", time);
-			break;
-		}
-	}
+	strcat(path, ".dat");
 	
 	Save save;
-	save.game = game;
+	save.game = *game;
 	for (int i = 0; i < ENEMIES; i++) {
 		save.cars[i] = cars[i];
 	}
 
 	out = fopen(path, "wb");
-	fwrite(&save, sizeof(Game), 1, out);
+	fwrite(&save, sizeof(Save), 1, out);
 	fclose(out);
 }
 
 
-void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char fileName[20]) {
+void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char filePath[250]) {
 	FILE* in;
-	SDL_Surface* tempSpritePlayerPower = game->player.power.sprite;
-	SDL_Surface* tempSpritePower = game->power.sprite;
-	char path[26] = "saves/";
-	snprintf(path + 6, 26, "%s", fileName);
 
 	Save save;
-	
-	in = fopen(path, "rb");
-	fread(&save, sizeof(Game), 1, in);
+	in = fopen(filePath, "rb");
+	fread(&save, sizeof(Save), 1, in);
 	fclose(in);
-
-	game = save.game;
+	printf("432\n");
+	game = &save.game;
 	for (int i = 0; i < ENEMIES; i++) {
 		cars[i] = save.cars[i];
 	}
+	printf("437\n");
 	game->player.sprite = sdl->playerCars[game->player.colorIndex];
-	game->player.power.sprite = tempSpritePlayerPower;
-	game->power.sprite = tempSpritePower;
-
+	printf("439\n");
+	game->player.power.sprite = sdl->powerup[0];
+	printf("441\n");
+	game->power.sprite = sdl->powerup[0];
+	printf("443\n");
 	for (int i = 0; i < ENEMIES; i++) {
-		cars[i].car = sdl->cars[save.cars[i].colorIndex];
+		cars[i].car = sdl->cars[cars[i].colorIndex];
 	}
+	printf("Car loaded pos: %d %d\n", save.game.player.coord.x, save.game.player.coord.y);
+	printf("Car position: %d %d\n", game->player.coord.x, game->player.coord.y);
 }
 
 
-void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]) {
-	char text[30];
-	int fileNameIndex = -1;
-	for (int i = 0; i < 10; i++) {
-		if (savedGames[i][0] == '\0') break;
-		sprintf(text, "%d. %s", i, savedGames[i]);
-		DrawString(sdl->screen, 40, SCREEN_HEIGHT / 4 + i * 15, text, sdl->charset);
-		RenderSurfaces(sdl);
+void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl) {
+	OPENFILENAMEA ofn;
+	char szFile[250];
+	
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = NULL;
+	ofn.lpstrFile = szFile;
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = sizeof(szFile);
+	ofn.lpstrFilter = ".dat";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = "E:/Studying/1 sem/PP/Project2/saves";
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+	if (GetOpenFileNameA(&ofn) == TRUE) {
+		printf("Selected file: %s\n", szFile);
+		NewGame(game, cars, sdl);
+		LoadGame(game, cars, sdl, szFile);
 	}
-	do {
-		while (SDL_PollEvent(&sdl->event)) {
-			switch (sdl->event.type) {
-			case SDL_KEYUP:
-				if (sdl->event.key.keysym.sym == SDLK_0) fileNameIndex = 0;
-				else if (sdl->event.key.keysym.sym == SDLK_1) fileNameIndex = 1;
-				else if (sdl->event.key.keysym.sym == SDLK_2) fileNameIndex = 2;
-				else if (sdl->event.key.keysym.sym == SDLK_3) fileNameIndex = 3;
-				else if (sdl->event.key.keysym.sym == SDLK_4) fileNameIndex = 4;
-				else if (sdl->event.key.keysym.sym == SDLK_5) fileNameIndex = 5;
-				else if (sdl->event.key.keysym.sym == SDLK_6) fileNameIndex = 6;
-				else if (sdl->event.key.keysym.sym == SDLK_7) fileNameIndex = 7;
-				else if (sdl->event.key.keysym.sym == SDLK_8) fileNameIndex = 8;
-				else if (sdl->event.key.keysym.sym == SDLK_9) fileNameIndex = 9;
-				else if (sdl->event.key.keysym.sym == SDLK_BACKSPACE) fileNameIndex = -2;
-				break;
-			};
-		}
-		// warn
-		if (savedGames[0][0] == '\0') {
-			DrawString(sdl->screen, 5, SCREEN_HEIGHT / 4 - 15, "It's empty. Press backspace to exit.", sdl->charset);
-			RenderSurfaces(sdl);
-		}
-		else if (savedGames[fileNameIndex][0] == '\0') {
-			DrawString(sdl->screen, 40, SCREEN_HEIGHT / 4 - 15, "Incorrect number. Try again.", sdl->charset);
-			RenderSurfaces(sdl);
-			fileNameIndex = -1;
-		}
-	} while (fileNameIndex == -1);
-	if (fileNameIndex < 0) return;
-	//GetFileName(game, cars, sdl, savedGames);
-	LoadGame(game, cars, sdl, savedGames[fileNameIndex]);
-}
-
-
-void GetFileName(Game* game, CarInfo* cars, SDL* sdl, char savedGames[10][20]) {
-	int fileNameIndex = -1;
-	do {
-		while (SDL_PollEvent(&sdl->event)) {
-			switch (sdl->event.type) {
-			case SDL_KEYUP:
-				if (sdl->event.key.keysym.sym == SDLK_0) fileNameIndex = 0;
-				else if (sdl->event.key.keysym.sym == SDLK_1) fileNameIndex = 1;
-				else if (sdl->event.key.keysym.sym == SDLK_2) fileNameIndex = 2;
-				else if (sdl->event.key.keysym.sym == SDLK_3) fileNameIndex = 3;
-				else if (sdl->event.key.keysym.sym == SDLK_4) fileNameIndex = 4;
-				else if (sdl->event.key.keysym.sym == SDLK_5) fileNameIndex = 5;
-				else if (sdl->event.key.keysym.sym == SDLK_6) fileNameIndex = 6;
-				else if (sdl->event.key.keysym.sym == SDLK_7) fileNameIndex = 7;
-				else if (sdl->event.key.keysym.sym == SDLK_8) fileNameIndex = 8;
-				else if (sdl->event.key.keysym.sym == SDLK_9) fileNameIndex = 9;
-				break;
-			};
-		}
-	} while (fileNameIndex == -1);
-
-	LoadGame(game, cars, sdl, savedGames[fileNameIndex]);
+	else {
+		printf("No file selected.\n");
+	}
+	
 }
 
 
@@ -756,9 +720,9 @@ bool canSpawn(Game* game, CarInfo* cars) {
 }
 
 
-void addBullet(Game* game) {
+void addBullet(Game* game, SDL* sdl) {
 	if (game->bullet.speed != 0) return;
-	game->bullet.sprite = SDL_LoadBMP("./assets/bullet.bmp");
+	game->bullet.sprite = sdl->bullet;
 	game->bullet.coord.x = game->player.coord.x;
 	game->bullet.coord.y = game->player.coord.y - 30;
 	if (game->player.power.time > 0) game->bullet.coord.y2 = game->player.coord.y + 30;

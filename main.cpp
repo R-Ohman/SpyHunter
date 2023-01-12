@@ -9,7 +9,7 @@
 - доделать сохранение игры в файл (считывание)
 
 БАГИ:
-
+- сохранение после загрузки сохраненки
 
 Изменить:
 
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
 		savedGames[i][0] = '\0';
 	if (initGame(&sdl)) return 1;
 	// initialize the game
-	NewGame(&game, cars);
+	NewGame(&game, cars, &sdl);
 	for (int i = 0; i < ENEMIES; i++) {
 		cars[i].car = sdl.cars[0];
 		cars[i].colorIndex = 0;
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
 			DrawRandomCar(cars, &game, &sdl);
 			// draw player
 			if (DrawPlayer(&game, &sdl)) {
-				NewGame(&game, cars);
+				NewGame(&game, cars, &sdl);
 				game.time.deadMessage = 2;
 			}
 		//DrawSurface(sdl.screen, game.player.player, game.player.coord.x, game.player.coord.y);
@@ -94,18 +94,18 @@ int main(int argc, char** argv) {
 			switch (sdl.event.type) {
 			case SDL_KEYDOWN:
 				if (sdl.event.key.keysym.sym == SDLK_ESCAPE) quit = 1;
-				else if (sdl.event.key.keysym.sym == SDLK_n) NewGame(&game, cars);
+				else if (sdl.event.key.keysym.sym == SDLK_n) NewGame(&game, cars, &sdl);
 				else if (sdl.event.key.keysym.sym == SDLK_p) game.pause = !game.pause;
-				else if (sdl.event.key.keysym.sym == SDLK_s)  SaveGame(&game, cars, &sdl, savedGames);
+				else if (sdl.event.key.keysym.sym == SDLK_s)  SaveGame(&game, cars, &sdl);
 				else if (sdl.event.key.keysym.sym == SDLK_l) {
-					ShowSavedGames(&game, cars, &sdl, savedGames);
+					ShowSavedGames(&game, cars, &sdl);
 					timeStart = SDL_GetTicks();
 				}
 				else if (sdl.event.key.keysym.sym == SDLK_UP) game.player.speed = -1;
 				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.player.speed = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.player.turn = -1;
 				else if (sdl.event.key.keysym.sym == SDLK_RIGHT) game.player.turn = 1;
-				else if (sdl.event.key.keysym.sym == SDLK_SPACE) addBullet(&game);
+				else if (sdl.event.key.keysym.sym == SDLK_SPACE) addBullet(&game, &sdl);
 				break;
 			case SDL_KEYUP:
 				if (sdl.event.key.keysym.sym == SDLK_UP) game.player.speed = 0;
