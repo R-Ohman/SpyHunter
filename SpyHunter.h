@@ -13,13 +13,15 @@
 
 #define SCREEN_WIDTH	1280
 #define SCREEN_HEIGHT	720
-#define GOD_MODE_TIME	15
+#define GOD_MODE_TIME	1
 #define ENEMIES			5
 #define CAR_SPEED		250
 #define DATE_FORMAT		"%d-%m-%Y_%H-%M-%S.dat"
 #define LEFT_BORDER		SCREEN_WIDTH / 2 - game->roadWidth/2
 #define RIGHT_BORDER	SCREEN_WIDTH / 2 + game->roadWidth/2
 #define OUT_ROAD		90
+#define RES_PER_PAGE	3
+#define SORT_TYPE		1
 
 
 struct Game {
@@ -177,6 +179,27 @@ void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl);
 
 
 void SpawnPlayer(Game* game, CarInfo* cars);
+
+
+void AddResult(Game* game, vector_t* resultsList, SDL* sdl);
+
+
+void SaveResults(vector_t* resultsList);
+
+
+void LoadResults(vector_t* resultsList);
+
+
+void topResultsMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars);
+
+
+void welcomeMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars, int* quit);
+
+
+void getResultsMenuAction(int* page, SDL* sdl, vector_t* resultsList, const int place, Game* game, CarInfo* cars);
+
+
+void getWelcomeMenuAction(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars, int *quit);
 
 
 void changeTimers(Game* game);

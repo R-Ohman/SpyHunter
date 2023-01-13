@@ -408,7 +408,7 @@ void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
 	FILE* out;
 	time_t now = time(0);
 	tm* time = localtime(&now);
-	
+
 	char* path = new char[30];
 	strftime(path, 30, "saves/%d-%m-%Y_%H-%M-%S.dat", time);
 	out = fopen(path, "wb");
@@ -433,7 +433,7 @@ void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
 	for (int i = 0; i < ENEMIES; i++) {
 		if (cars[i].car == NULL) save.cars[i].car = sdl->cars[0];
 	}
-	
+
 	if (fwrite(&save, sizeof(Save), 1, out) != 1)
 	{
 		printf("FWRITE ERROR\n");
@@ -467,7 +467,7 @@ void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char filePath[250]) {
 void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl) {
 	OPENFILENAMEA ofn;
 	char szFile[250];
-	
+
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = NULL;
@@ -489,7 +489,7 @@ void ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl) {
 	else {
 		printf("No file selected.\n");
 	}
-	
+
 }
 
 
@@ -502,6 +502,209 @@ void SpawnPlayer(Game* game, CarInfo* cars) {
 		cars[i].coord.x = 0;
 	}
 };
+
+
+void AddResult(Game* game, vector_t* resultsList, SDL* sdl) {
+	char text[128];
+	SDL_FillRect(sdl->screen, NULL, SDL_MapRGB(sdl->screen->format, 107, 142, 35));
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 2,
+		SDL_MapRGB(sdl->screen->format, 192, 192, 192), SDL_MapRGB(sdl->screen->format, 40, 40, 40));
+	sprintf(text, "SPY HUNTER");
+	DrawString(sdl->screen, SCREEN_WIDTH / 2 - strlen(text) * 4, SCREEN_HEIGHT / 4 + 30, text, sdl->charset);
+	sprintf(text, "Add result to your list of best games?");
+	DrawString(sdl->screen, SCREEN_WIDTH / 2 - strlen(text) * 4, SCREEN_HEIGHT / 4 + 60, text, sdl->charset);
+	sprintf(text, "Y - Yes");
+	DrawString(sdl->screen, SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 4 + 80, text, sdl->charset);
+	sprintf(text, "N - No");
+	DrawString(sdl->screen, SCREEN_WIDTH / 2 + 100, SCREEN_HEIGHT / 4 + 80, text, sdl->charset);
+	RenderSurfaces(sdl);
+	char action = '\0';
+	do {
+		while (SDL_PollEvent(&sdl->event)) {
+			switch (sdl->event.type) {
+			case SDL_KEYDOWN:
+				if (sdl->event.key.keysym.sym == SDLK_y) action = 'Y';
+				else if (sdl->event.key.keysym.sym == SDLK_n) action = 'N';
+				break;
+			case SDL_KEYUP:
+				if (action == 'Y' || action == 'N') break;
+			};
+		}
+	} while (action == '\0');
+	if (action == 'N') return;
+	Result result{ game->time.total, (int)game->score };
+	push_back(resultsList, result);
+}
+
+
+void SaveResults(vector_t* resultsList) {
+	FILE* out;
+	out = fopen("saves/results.txt", "w");
+	if (out == NULL) {
+		out = fopen("results.txt", "w");
+		if (out == NULL) {
+			printf("Error while loading results\n");
+			return;
+		}
+	}
+	for (int i = 0; i < resultsList->count; i++) {
+		printf("i= %d, time = %.3f, score = %d\n", i, resultsList->ptr[i].time, resultsList->ptr[i].score);
+		fprintf(out, "%f %d\n", resultsList->ptr[i].time, resultsList->ptr[i].score);
+	}
+	fclose(out);
+}
+
+
+void LoadResults(vector_t* resultsList) {
+	FILE* in = fopen("saves/results.txt", "r");
+	if (in == NULL) {
+		in = fopen("results.txt", "r");
+		if (in == NULL) {
+			printf("Error while loading results\n");
+			return;
+		}
+	}
+	Result result = { 0, 0 };
+	while (true) {
+		if (fscanf(in, "%lf %d\n", &result.time, &result.score) != 2) break;
+		push_back(resultsList, result);
+	}
+	fclose(in);
+}
+
+
+int sortByScore(const void* a, const void* b) {
+	struct Result x = *(struct Result*)a;
+	struct Result y = *(struct Result*)b;
+	if (x.score == y.score) return (y.time - x.time);
+	return (y.score - x.score);
+
+}
+
+
+int sortByTime(const void* a, const void* b) {
+	struct Result x = *(struct Result*)a;
+	struct Result y = *(struct Result*)b;
+	if (x.time == y.time) return (y.score - x.score);
+	return 1000 * (y.time - x.time);
+}
+
+
+void topResultsMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars) {
+	// fill green color
+	static int page = 0;
+	char text[128];
+	SDL_FillRect(sdl->screen, NULL, SDL_MapRGB(sdl->screen->format, 107, 142, 35));
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 2,
+		SDL_MapRGB(sdl->screen->format, 192, 192, 192), SDL_MapRGB(sdl->screen->format, 40, 40, 40));
+	sprintf(text, "BEST GAMES LIST");
+	DrawString(sdl->screen, SCREEN_WIDTH / 2 - strlen(text) * 4, SCREEN_HEIGHT / 4 + 30, text, sdl->charset);
+	int i;
+	for (i = page * RES_PER_PAGE; i < (page + 1) * RES_PER_PAGE && i < resultsList->count; i++) {
+		sprintf(text, "%d. Score: %d", i + 1, resultsList->ptr[i].score);
+		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 50, SCREEN_HEIGHT / 4 + 70 + 20 * (i - page * RES_PER_PAGE), text, sdl->charset);
+		sprintf(text, "Time: %.1f s", resultsList->ptr[i].time);
+		DrawString(sdl->screen, SCREEN_WIDTH / 2 + 50, SCREEN_HEIGHT / 4 + 70 + 20 * (i - page * RES_PER_PAGE), text, sdl->charset);
+	}
+	sprintf(text, "\032/\033 - Previous/Next page");
+	DrawString(sdl->screen, 2 * SCREEN_WIDTH / 3 - strlen(text) * 8 - 30, 3 * SCREEN_HEIGHT / 4 - 30, text, sdl->charset);
+	sprintf(text, "B - Back");
+	DrawString(sdl->screen, SCREEN_WIDTH / 3 + strlen(text) * 8 + 30, 3 * SCREEN_HEIGHT / 4 - 30, text, sdl->charset);
+	RenderSurfaces(sdl);
+	getResultsMenuAction(&page, sdl, resultsList, i, game, cars);
+}
+
+
+void welcomeMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars, int* quit) {
+	char text[128];
+	SDL_FillRect(sdl->screen, NULL, SDL_MapRGB(sdl->screen->format, 107, 142, 35));
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 2,
+		SDL_MapRGB(sdl->screen->format, 192, 192, 192), SDL_MapRGB(sdl->screen->format, 40, 40, 40));
+	sprintf(text, "SPY HUNTER");
+	DrawString(sdl->screen, SCREEN_WIDTH / 2 - strlen(text) * 4, SCREEN_HEIGHT / 4 + 30, text, sdl->charset);
+	sprintf(text, "N - New Game");
+	DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + 70, text, sdl->charset);
+	sprintf(text, "L - Load Game");
+	DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + 100, text, sdl->charset);
+	sprintf(text, "ESC - Exit");
+	DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + 130, text, sdl->charset);
+	if (resultsList->count > 0) {
+		sprintf(text, "P - Best results by points");
+		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + 160, text, sdl->charset);
+		sprintf(text, "T - Best results by time");
+		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + 190, text, sdl->charset);
+	}
+	RenderSurfaces(sdl);
+	getWelcomeMenuAction(sdl, resultsList, game, cars, quit);
+}
+
+
+void getWelcomeMenuAction(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars, int* quit) {
+	char action = '\0';
+	do {
+		while (SDL_PollEvent(&sdl->event)) {
+			switch (sdl->event.type) {
+			case SDL_KEYDOWN:
+				if (sdl->event.key.keysym.sym == SDLK_n) action = 'N';
+				else if (sdl->event.key.keysym.sym == SDLK_l) action = 'L';
+				else if (sdl->event.key.keysym.sym == SDLK_p && resultsList->count) action = 'P';
+				else if (sdl->event.key.keysym.sym == SDLK_t && resultsList->count) action = 'T';
+				else if (sdl->event.key.keysym.sym == SDLK_ESCAPE) action = 'Q';
+				break;
+			};
+		}
+	} while (action == '\0');
+
+	switch (action) {
+	case 'N':
+		NewGame(game, cars, sdl);
+		break;
+	case 'L':
+		ShowSavedGames(game, cars, sdl);
+		break;
+	case 'P':
+		qsort(resultsList->ptr, resultsList->count, sizeof(struct Result), sortByScore);
+		topResultsMenu(sdl, resultsList, game, cars);
+		break;
+	case 'T':
+		qsort(resultsList->ptr, resultsList->count, sizeof(struct Result), sortByTime);
+		topResultsMenu(sdl, resultsList, game, cars);
+		break;
+	case 'Q':
+		(*quit)++;
+		break;
+	}
+}
+
+
+void getResultsMenuAction(int* page, SDL* sdl, vector_t* resultsList, const int place, Game* game, CarInfo* cars) {
+	char action = '\0';
+	do {
+		while (SDL_PollEvent(&sdl->event)) {
+			switch (sdl->event.type) {
+			case SDL_KEYDOWN:
+				if (sdl->event.key.keysym.sym == SDLK_LEFT && *page > 0) action = 'L';
+				else if (sdl->event.key.keysym.sym == SDLK_RIGHT && place < resultsList->count) action = 'R';
+				else if (sdl->event.key.keysym.sym == SDLK_b) action = 'B';
+				break;
+			};
+		}
+	} while (action == '\0');
+
+	switch (action) {
+	case 'B':
+		welcomeMenu(sdl, resultsList, game, cars, 0);
+		break;
+	case 'L':
+		(*page)--;
+		topResultsMenu(sdl, resultsList, game, cars);
+		break;
+	case 'R':
+		(*page)++;
+		topResultsMenu(sdl, resultsList, game, cars);
+		break;
+	}
+}
 
 
 void changeTimers(Game* game) {

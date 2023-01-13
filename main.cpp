@@ -12,7 +12,7 @@
 - сохранение после загрузки сохраненки
 
 Изменить:
-
+- 561 строка в SpyHunter.cpp пофиксить цикл чтобы нормально считывал
 
 Недочеты:
 - при паузе пуля продолжает лететь и может убить авто
@@ -31,19 +31,17 @@ int main(int argc, char** argv) {
 	SDL sdl = { NULL };
 	Game game = { NULL };
 	CarInfo cars[5];
-	char savedGames[10][20];
-	for (int i = 0; i < 10; i++)
-		savedGames[i][0] = '\0';
 	if (initGame(&sdl)) return 1;
 	// initialize the game
-	NewGame(&game, cars, &sdl);
+	LoadResults(&bestResults);
 	for (int i = 0; i < ENEMIES; i++) {
 		cars[i].car = sdl.cars[0];
 		cars[i].colorIndex = 0;
 	}
-	int timeStart = game.time.startGame, timeEnd, quit = 0, frames = 0, roadMarkingPos = SCREEN_HEIGHT - 100;
+	int quit = 0, frames = 0, roadMarkingPos = SCREEN_HEIGHT - 100;
 	double fpsTimer = 0, fps = 0;
-
+	welcomeMenu(&sdl, &bestResults, &game, cars, &quit);
+	int timeStart = game.time.startGame, timeEnd;
 	while (!quit) {
 		// Fill window with green color;
 		if (!game.pause) SDL_FillRect(sdl.screen, NULL, SDL_MapRGB(sdl.screen->format, 107, 142, 35));
@@ -72,7 +70,8 @@ int main(int argc, char** argv) {
 			DrawRandomCar(cars, &game, &sdl);
 			// draw player
 			if (DrawPlayer(&game, &sdl)) {
-				NewGame(&game, cars, &sdl);
+				AddResult(&game, &bestResults, &sdl);
+				welcomeMenu(&sdl, &bestResults, &game, cars, &quit);
 				game.time.deadMessage = 2;
 			}
 		//DrawSurface(sdl.screen, game.player.player, game.player.coord.x, game.player.coord.y);
@@ -120,6 +119,7 @@ int main(int argc, char** argv) {
 		frames++;
 	};
 
+	SaveResults(&bestResults);
 	// freeing all surfaces
 	FreeSurfaces(sdl);
 	return 0;

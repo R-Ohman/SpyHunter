@@ -4,10 +4,16 @@
 #include <string.h>
 
 
+struct Result {
+	double time;
+	int score;
+};
+
+
 typedef struct {
 	int allocated_size;
 	int count;
-	int* ptr;
+	Result* ptr;
 } vector_t;
 
 
@@ -19,11 +25,11 @@ void reallocate(vector_t* v, int reallocate_size);
 
 
 // Umieszczenie wartości val jako nowego (końcowego) elementu wektora *v.
-void push_back(vector_t* v, int val);
+void push_back(vector_t* v, Result val);
 
 
 // Pobranie i usunięcie wartości końcowego elementu wektora *v.
-int pop_back(vector_t* v);
+Result pop_back(vector_t* v);
 
 
 void clear_vector(vector_t* v);
