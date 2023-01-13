@@ -25,14 +25,14 @@ int initGame(SDL* sdl) {
 		printf("SDL_Init error: %s\n", SDL_GetError());
 		return 1;
 	}
-	//  SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
-//	                                 &window, &renderer);
+	  SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
+	                                 &sdl->window, &sdl->renderer);
 	// SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer)
-	if (SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer) != 0) {
-		SDL_Quit();
-		printf("SDL_CreateWindowAndRenderer error: %s\n", SDL_GetError());
-		return 1;
-	};
+	//if (SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer) != 0) {
+	//	SDL_Quit();
+	//	printf("SDL_CreateWindowAndRenderer error: %s\n", SDL_GetError());
+	//	return 1;
+	//};
 
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	SDL_RenderSetLogicalSize(sdl->renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -128,6 +128,7 @@ void DrawSurface(SDL_Surface* screen, SDL_Surface* sprite, int x, int y) {
 
 
 void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
+	// SDL_FillRect(sdl->screen, NULL, SDL_MapRGB(sdl->screen->format, 107, 142, 35));
 	int grey = SDL_MapRGB(sdl->screen->format, 105, 105, 105);
 	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 - (int)game->roadWidth / 2, 0, game->roadWidth, SCREEN_HEIGHT, grey, grey);
 	int grey_dark = SDL_MapRGB(sdl->screen->format, 40, 40, 40);
@@ -141,14 +142,11 @@ void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
 	}
 	if (*roadMarkingPos > SCREEN_HEIGHT + SCREEN_HEIGHT / 3) *roadMarkingPos -= SCREEN_HEIGHT / 3;
 	// Draw road
-	//int* tmpPos = (int*)malloc(sizeof(int));
-	//*tmpPos = *roadMarkingPos;
 	int tmpPos = *roadMarkingPos;
 	while (tmpPos > -SCREEN_HEIGHT / 7) {
 		DrawRoadRectangle(sdl->screen, tmpPos);
 		tmpPos -= SCREEN_HEIGHT / 3;
 	}
-	//free(tmpPos);
 };
 
 
@@ -168,44 +166,57 @@ void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps) {
 	sprintf(text, "Czas trwania = %.1lf s  %.0lf klatek / s\tScore: %.0f", game.time.total, fps, game.score);
 	DrawString(sdl.screen, sdl.screen->w / 2 - strlen(text) * 8 / 2, 26, text, sdl.charset);
 
+	DrawCommunicates(screen, game, sdl);
+	DrawMenu(sdl);
+};
+
+
+void DrawMenu(SDL sdl) {
+	char* text[64] = {
+		"N - New Game",
+		"ESC - Exit",
+		"\030/\031 - acceleration / deceleration",
+		"\032/\033 - left / right",
+		"Space - Shoot",
+		"F - End Game",
+		"P - Pause",
+		"S - Save Game",
+		"L - Load Game"
+	};
+	for (int i = 0; i < 9; i++) {
+		DrawString(sdl.screen, SCREEN_WIDTH - strlen(text[i]) * 9, SCREEN_HEIGHT / 2 + SPACING * i, text[i], sdl.charset);
+	}
+}
+
+
+void DrawCommunicates(SDL_Surface* screen, Game game, SDL sdl) {
+	char text[128];
 	if (game.time.deadMessage > 0) {
 		sprintf(text, "You dead! New game..., %.1f", game.time.deadMessage);
-		DrawString(sdl.screen, sdl.screen->w - strlen(text) * 8, SCREEN_HEIGHT / 2, text, sdl.charset);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2, text, sdl.charset);
 	}
 	else if (game.time.scoreFreeze) {
 		sprintf(text, "Score is freezed on %.1f sec", game.time.scoreFreeze);
-		DrawString(sdl.screen, sdl.screen->w - strlen(text) * 8, SCREEN_HEIGHT / 2, text, sdl.charset);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2, text, sdl.charset);
 	}
 	else if (game.time.killMessage > 0) {
 		sprintf(text, "KILL! You get 1000 points!");
-		DrawString(sdl.screen, sdl.screen->w - strlen(text) * 8, SCREEN_HEIGHT / 2, text, sdl.charset);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2, text, sdl.charset);
 	}
 	if (game.player.lives) {
 		if (game.time.total > GOD_MODE_TIME)
 			sprintf(text, "You have %d lives!", game.player.lives);
 		else sprintf(text, "You have infinite lives until %.1f sec", GOD_MODE_TIME - game.time.total);
-		DrawString(sdl.screen, sdl.screen->w - strlen(text) * 8, SCREEN_HEIGHT / 2 - 20, text, sdl.charset);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2 - 20, text, sdl.charset);
 	}
 	if (game.player.power.time > 0) {
 		sprintf(text, "You got weapon until %.1f sec", game.player.power.time);
-		DrawString(sdl.screen, sdl.screen->w - strlen(text) * 8, SCREEN_HEIGHT / 2 - 40, text, sdl.charset);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2 - 40, text, sdl.charset);
 	}
 	if (game.pause) {
 		sprintf(text, "Game paused!");
-		DrawString(sdl.screen, sdl.screen->w - strlen(text) * 8, SCREEN_HEIGHT / 2 - 60, text, sdl.charset);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2 - 60, text, sdl.charset);
 	}
-
-	sprintf(text, "N - nowa gra");
-	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10, text, sdl.charset);
-
-	sprintf(text, "Esc - wyjscie");
-	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 30, text, sdl.charset);
-
-	sprintf(text, "\030/\031 - przyspieszenie/zwolnienie");
-	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 60, text, sdl.charset);
-
-	sprintf(text, "p - pause");
-	DrawString(sdl.screen, sdl.screen->w - strlen(text) * 9, 8 * SCREEN_HEIGHT / 10 - 90, text, sdl.charset);
 };
 
 
@@ -213,6 +224,11 @@ int DrawPlayer(Game* game, SDL* sdl) {
 	if (game->player.lives < 1) {
 		printf("GAME END\n");
 		return 1;
+	}
+	/// 5000 points for getting 1 extra live
+	if (game->player.liveGain < (int)game->score / 5000) {
+		game->player.lives++;
+		game->player.liveGain++;
 	}
 	if (game->time.total > GOD_MODE_TIME) {
 		if (game->totalDistance > 100) {
@@ -336,7 +352,11 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 	for (int i = 0; i < ENEMIES; i++) {
 		if (cars[i].coord.x != 0) {
 			if (touchObject(game, &cars[i], game->time.delta, cars, sdl)) {
-				if (game->time.total > GOD_MODE_TIME) game->player.lives--;
+				printf("Player lives before: %d\n", game->player.lives);
+				if (game->time.total > GOD_MODE_TIME) {
+					game->player.lives--;
+					printf("Player lives after: %d\n", game->player.lives);
+				}
 				SpawnPlayer(game, cars);
 			}
 			else {
@@ -384,7 +404,8 @@ void NewGame(Game* game, CarInfo* cars, SDL* sdl) {
 	SpawnPlayer(game, cars);
 	game->player.sprite = sdl->playerCars[0];
 	game->player.colorIndex = 0;
-	game->player.lives = 2;
+	game->player.lives = 1;
+	game->player.liveGain = 0;
 	game->player.power.sprite = NULL;
 	game->player.power.time = 0;
 	game->time.startGame = SDL_GetTicks();
@@ -448,7 +469,16 @@ void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char filePath[250]) {
 
 	Save save;
 	in = fopen(filePath, "rb");
-	printf("FIle path: %s\n", filePath);
+	if (in == NULL) {
+		printf("Error while loading game\n");
+		return;
+	}
+	for (int i = 0; i < 250; i++) {
+		if (filePath[i] == '\0') {
+			if (filePath[i - 4] != '.' || filePath[i - 3] != 'd' || filePath[i - 2] != 'a' || filePath[i - 1] != 't')
+				return;
+		}
+	}
 	fread(&save, sizeof(Save), 1, in);
 	fclose(in);
 	*game = save.game;
@@ -598,41 +628,42 @@ void topResultsMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars) 
 	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 2,
 		SDL_MapRGB(sdl->screen->format, 192, 192, 192), SDL_MapRGB(sdl->screen->format, 40, 40, 40));
 	sprintf(text, "BEST GAMES LIST");
-	DrawString(sdl->screen, SCREEN_WIDTH / 2 - strlen(text) * 4, SCREEN_HEIGHT / 4 + 30, text, sdl->charset);
+	DrawString(sdl->screen, SCREEN_WIDTH / 2 - strlen(text) * 4, SCREEN_HEIGHT / 4 + SPACING, text, sdl->charset);
 	int i;
 	for (i = page * RES_PER_PAGE; i < (page + 1) * RES_PER_PAGE && i < resultsList->count; i++) {
 		sprintf(text, "%d. Score: %d", i + 1, resultsList->ptr[i].score);
-		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 50, SCREEN_HEIGHT / 4 + 70 + 20 * (i - page * RES_PER_PAGE), text, sdl->charset);
+		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 50, SCREEN_HEIGHT / 4 + 2* SPACING + 20 * (i - page * RES_PER_PAGE), text, sdl->charset);
 		sprintf(text, "Time: %.1f s", resultsList->ptr[i].time);
-		DrawString(sdl->screen, SCREEN_WIDTH / 2 + 50, SCREEN_HEIGHT / 4 + 70 + 20 * (i - page * RES_PER_PAGE), text, sdl->charset);
+		DrawString(sdl->screen, SCREEN_WIDTH / 2 + 50, SCREEN_HEIGHT / 4 + 2* SPACING + 20 * (i - page * RES_PER_PAGE), text, sdl->charset);
 	}
 	sprintf(text, "\032/\033 - Previous/Next page");
-	DrawString(sdl->screen, 2 * SCREEN_WIDTH / 3 - strlen(text) * 8 - 30, 3 * SCREEN_HEIGHT / 4 - 30, text, sdl->charset);
+	DrawString(sdl->screen, 2 * SCREEN_WIDTH / 3 - strlen(text) * 8 - SPACING, 3 * SCREEN_HEIGHT / 4 - SPACING, text, sdl->charset);
 	sprintf(text, "B - Back");
-	DrawString(sdl->screen, SCREEN_WIDTH / 3 + strlen(text) * 8 + 30, 3 * SCREEN_HEIGHT / 4 - 30, text, sdl->charset);
+	DrawString(sdl->screen, SCREEN_WIDTH / 3 + strlen(text) * 8 + SPACING, 3 * SCREEN_HEIGHT / 4 - SPACING, text, sdl->charset);
 	RenderSurfaces(sdl);
 	getResultsMenuAction(&page, sdl, resultsList, i, game, cars);
 }
 
 
 void welcomeMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars, int* quit) {
-	char text[128];
 	SDL_FillRect(sdl->screen, NULL, SDL_MapRGB(sdl->screen->format, 107, 142, 35));
 	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 2,
 		SDL_MapRGB(sdl->screen->format, 192, 192, 192), SDL_MapRGB(sdl->screen->format, 40, 40, 40));
-	sprintf(text, "SPY HUNTER");
-	DrawString(sdl->screen, SCREEN_WIDTH / 2 - strlen(text) * 4, SCREEN_HEIGHT / 4 + 30, text, sdl->charset);
-	sprintf(text, "N - New Game");
-	DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + 70, text, sdl->charset);
-	sprintf(text, "L - Load Game");
-	DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + 100, text, sdl->charset);
-	sprintf(text, "ESC - Exit");
-	DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + 130, text, sdl->charset);
+
+	char text[][64] = {
+		"SPY HUNTER",
+		"N - New Game",
+		"L - Load Game",
+		"ESC - Exit"
+	};
+	for (int i = 0; i < 4; i++) {
+		DrawString(sdl->screen, SCREEN_WIDTH / 2 - strlen(text[i]) * 4, SCREEN_HEIGHT / 4 + SPACING * (i+1), text[i], sdl->charset);
+	}
 	if (resultsList->count > 0) {
-		sprintf(text, "P - Best results by points");
-		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + 160, text, sdl->charset);
-		sprintf(text, "T - Best results by time");
-		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + 190, text, sdl->charset);
+		sprintf(*text, "P - Best results by points");
+		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + SPACING * 5, *text, sdl->charset);
+		sprintf(*text, "T - Best results by time");
+		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 100, SCREEN_HEIGHT / 4 + SPACING * 6, *text, sdl->charset);
 	}
 	RenderSurfaces(sdl);
 	getWelcomeMenuAction(sdl, resultsList, game, cars, quit);
@@ -964,8 +995,9 @@ int carIsKilled(Game* game, CarInfo* cars, SDL* sdl, int y) {
 	for (int i = 0; i < ENEMIES; i++) {
 		bool isEnemy = cars[i].isEnemy;
 		if (cars[i].coord.x != 0) {
-			if (inFault(y, cars[i].coord.y, cars[i].car->h / 2) &&
-				inFault(game->bullet.coord.x, cars[i].coord.x, cars[i].car->w / 2)) {
+			if ((inFault(y, cars[i].coord.y, cars[i].car->h / 2) &&
+				inFault(game->bullet.coord.x, cars[i].coord.x, cars[i].car->w / 2))
+				&& cars[i].colorIndex != ENEMIES) {
 				// Car is killed
 				cars[i].car = sdl->cars[ENEMIES];
 				cars[i].colorIndex = ENEMIES;

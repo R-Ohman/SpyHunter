@@ -22,29 +22,31 @@
 #define OUT_ROAD		90
 #define RES_PER_PAGE	3
 #define SORT_TYPE		1
+#define SPACING			40
 
 
 struct Game {
 	struct {
 		SDL_Surface* sprite;
 		int colorIndex;
-		
+
 		struct Coord {
 			int x;
 			int y;
 		} coord;
-		
+
 		struct {
 			// power котопую подобрал
 			SDL_Surface* sprite;
 			double time;
 		} power;
-		
+
 		int speed;
 		int turn;
 		int lives;
+		int liveGain;
 	} player;
-	
+
 	struct {
 		SDL_Surface* sprite;
 		struct {
@@ -74,7 +76,7 @@ struct Game {
 		} coord;
 		double time;
 	} power;
-	
+
 	double totalDistance;
 	double roadWidth;
 	double score;
@@ -88,7 +90,7 @@ struct CarInfo {
 		int x;
 		int y;
 	} coord;
-	
+
 	double speed;
 	bool isEnemy;
 	int colorIndex;
@@ -145,10 +147,19 @@ void DrawSurface(SDL_Surface* screen, SDL_Surface* sprite, int x, int y);
 void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos);
 
 
+void DrawMenu(SDL sdl);
+
+
 void DrawRoadRectangle(SDL_Surface* screen, int y);
 
 
 void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps);
+
+
+void DrawCommunicates(SDL_Surface* screen, Game game, SDL sdl);
+
+
+void DrawMenu(SDL sdl);
 
 
 int DrawPlayer(Game* game, SDL* sdl);
@@ -199,7 +210,7 @@ void welcomeMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars, int
 void getResultsMenuAction(int* page, SDL* sdl, vector_t* resultsList, const int place, Game* game, CarInfo* cars);
 
 
-void getWelcomeMenuAction(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars, int *quit);
+void getWelcomeMenuAction(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars, int* quit);
 
 
 void changeTimers(Game* game);
@@ -222,7 +233,7 @@ bool numbersInArray(int x, int y, CarInfo* object);
 
 
 // Проверка для пикселей по периметру машины, находится ли позиция в другом объекте.
-bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo *cars, SDL* sdl);
+bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* cars, SDL* sdl);
 
 
 bool isDestroyed(CarInfo* car, SDL* sdl, Game* game);

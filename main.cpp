@@ -6,13 +6,11 @@
 /*
 ПЛАН НА 10.01
 - пересмотреть функции, убрать все ненужное
-- доделать сохранение игры в файл (считывание)
 
 БАГИ:
-- сохранение после загрузки сохраненки
 
 Изменить:
-- 561 строка в SpyHunter.cpp пофиксить цикл чтобы нормально считывал
+
 
 Недочеты:
 - при паузе пуля продолжает лететь и может убить авто
@@ -92,6 +90,7 @@ int main(int argc, char** argv) {
 			case SDL_KEYDOWN:
 				if (sdl.event.key.keysym.sym == SDLK_ESCAPE) quit = 1;
 				else if (sdl.event.key.keysym.sym == SDLK_n) NewGame(&game, cars, &sdl);
+				else if (sdl.event.key.keysym.sym == SDLK_f) game.player.lives = 0;
 				else if (sdl.event.key.keysym.sym == SDLK_p) game.pause = !game.pause;
 				else if (sdl.event.key.keysym.sym == SDLK_s)  SaveGame(&game, cars, &sdl);
 				else if (sdl.event.key.keysym.sym == SDLK_l) {
