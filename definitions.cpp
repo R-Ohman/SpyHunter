@@ -3,7 +3,6 @@
 
 void NewGame(Game* game, CarInfo* cars, SDL* sdl) {
 	SpawnPlayer(game, cars);
-	game->player.sprite = sdl->playerCars[0];
 	game->player.colorIndex = 0;
 	game->player.lives = 1;
 	game->player.liveGain = 0;
@@ -68,8 +67,12 @@ void changeTimers(Game* game) {
 		if (game->player.powerTime[i] < 0) game->player.powerTime[i] = 0;
 	}
 	if (game->time.killMessage > 0) game->time.killMessage -= game->time.delta;
-	if ((int)game->time.total % 30 > 17 && (int)game->time.total < 20) game->roadWidth -= game->time.delta * 70;
-	else if ((int)game->time.total % 30 > 2 && (int)game->time.total % 30 < 5) game->roadWidth += game->time.delta * 70;
-	else if ((int)game->time.total % 30 > 10 && (int)game->time.total % 30 < 14) game->roadWidth -= game->time.delta * 30;
-	else if ((int)game->time.total % 30 > 25 && (int)game->time.total % 30 < 29) game->roadWidth += game->time.delta * 30;
+	if (game->roadWidth > SCREEN_WIDTH / 4) {
+		if ((int)game->time.total % 30 > 17 && (int)game->time.total < 20) game->roadWidth -= game->time.delta * 70;
+		if ((int)game->time.total % 30 > 10 && (int)game->time.total % 30 < 14) game->roadWidth -= game->time.delta * 30;
+	}
+	if (game->roadWidth < 3 * SCREEN_WIDTH / 4) {
+		if ((int)game->time.total % 30 > 2 && (int)game->time.total % 30 < 5) game->roadWidth += game->time.delta * 70;
+		if ((int)game->time.total % 30 > 25 && (int)game->time.total % 30 < 29) game->roadWidth += game->time.delta * 30;
+	}
 }

@@ -14,6 +14,7 @@
 #define SORT_TYPE		1
 #define SPACING			40
 #define POWER_TIME		5
+#define PLAYER_SPRITE	sdl->playerCars[game->player.colorIndex]
 
 
 #include<math.h>
@@ -35,13 +36,9 @@ struct Coord {
 
 struct Game {
 	struct {
-		SDL_Surface* sprite;
-		int colorIndex;
-
 		Coord coord;
-		// powerTime[0] - действие powerup_1 (стрельба), powerTime[1] - действие powerup_2 (скорость)
 		double powerTime[2];
-
+		int colorIndex;
 		int speed;
 		int turn;
 		int lives;
@@ -97,7 +94,7 @@ struct SDL {
 	SDL_Surface* charset;
 	SDL_Surface* bullet;
 	SDL_Surface* cars[6];
-	SDL_Surface* playerCars[6];
+	SDL_Surface* playerCars[5];
 	SDL_Surface* powerup[2];
 	SDL_Surface* liveIcon, * infinityIcon;
 	SDL_Texture* scrtex;
@@ -106,16 +103,20 @@ struct SDL {
 };
 
 
-void NewGame(Game* game, CarInfo* cars, SDL* sdl);
-
-
-void SpawnPlayer(Game* game, CarInfo* cars);
-
-
-void addBullet(Game* game, SDL* sdl);
-
-
 void DrawSurface(SDL_Surface* screen, SDL_Surface* sprite, int x, int y);
 
 
+// Resets game variables
+void NewGame(Game* game, CarInfo* cars, SDL* sdl);
+
+
+// Moves the player and removes cars from the screen
+void SpawnPlayer(Game* game, CarInfo* cars);
+
+
+// Sets the bullet sprite and position
+void addBullet(Game* game, SDL* sdl);
+
+
+// Updates timers and road width
 void changeTimers(Game* game);

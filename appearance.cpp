@@ -201,7 +201,7 @@ void DrawCommunicates(SDL_Surface* screen, Game game, SDL sdl) {
 		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT - SPACING, text, sdl.charset);
 		sprintf(text, "%.1fs", GOD_MODE_TIME - game.time.total);
 		DrawString(sdl.screen, SCREEN_WIDTH / 2 - strlen(text) * 4, SPACING, text, sdl.charset);
-		DrawString(sdl.screen, game.player.coord.x - strlen(text) * 4, game.player.coord.y + game.player.sprite->h / 2, text, sdl.charset);
+		DrawString(sdl.screen, game.player.coord.x - strlen(text) * 4, game.player.coord.y + sdl.playerCars[0]->h / 2, text, sdl.charset);
 	}
 	if (game.player.powerTime[0] > 0) {
 		sprintf(text, "You got weapon until %.1f sec", game.player.powerTime[0]);
@@ -276,7 +276,6 @@ void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char filePath[250]) {
 	for (int i = 0; i < ENEMIES; i++) {
 		cars[i] = save.cars[i];
 	}
-	game->player.sprite = sdl->playerCars[game->player.colorIndex];
 	for (int i = 0; i < ENEMIES; i++) {
 		cars[i].car = sdl->cars[cars[i].colorIndex];
 	}
@@ -408,7 +407,6 @@ void getEvent(Game* game, CarInfo* cars, SDL* sdl, int* quit, int* time) {
 			else if (sdl->event.key.keysym.sym == SDLK_s)  SaveGame(game, cars, sdl);
 			else if (sdl->event.key.keysym.sym == SDLK_l) {
 				ShowSavedGames(game, cars, sdl);
-				printf("Player pos: %d %d\n", game->player.coord.x, game->player.coord.y);
 				*time = SDL_GetTicks();
 			}
 			else if (sdl->event.key.keysym.sym == SDLK_UP) game->player.speed = -1;

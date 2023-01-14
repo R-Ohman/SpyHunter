@@ -15,12 +15,11 @@ int DrawPlayer(Game* game, SDL* sdl) {
 	if (game->time.total > GOD_MODE_TIME) {
 		for (int i = 0; i < 5; i++) {
 			if (game->totalDistance > 100 * (i + 1)) {
-				game->player.sprite = sdl->playerCars[i];
 				game->player.colorIndex = i;
 			}
 		}
 	}
-	DrawSurface(sdl->screen, game->player.sprite, game->player.coord.x, game->player.coord.y);
+	DrawSurface(sdl->screen, PLAYER_SPRITE, game->player.coord.x, game->player.coord.y);
 	return 0;
 }
 
@@ -204,8 +203,8 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 			}
 			/* A power-up touches a player if the y-distance between the player
 			and the car = half their height and the x-distance = half their width*/
-			if (inFault(game->powerCoord[i].x, game->player.coord.x, game->player.sprite->w / 2 + sdl->powerup[i]->w / 2) &&
-				inFault(game->powerCoord[i].y, game->player.coord.y, game->player.sprite->h / 2 + sdl->powerup[i]->h / 2)) {
+			if (inFault(game->powerCoord[i].x, game->player.coord.x, sdl->playerCars[0]->w / 2 + sdl->powerup[i]->w / 2) &&
+				inFault(game->powerCoord[i].y, game->player.coord.y, sdl->playerCars[0]->h / 2 + sdl->powerup[i]->h / 2)) {
 				game->player.powerTime[i] = POWER_TIME;
 				game->powerCoord[i].x = 0;
 			}
@@ -242,14 +241,14 @@ bool numbersInArray(int x, int y, CarInfo* car) {
 }
 
 
-double modul(int a, int b) {
+int modul(double a, double b) {
 	return (a - b > 0) ? a - b : b - a;
 }
 
 
 bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* cars, SDL* sdl) {
-	// If the player touches the car with the left or right side
-	if (modul(game->player.coord.x, object->coord.x) == object->car->w &&
+	// If the player touches the car with the left or right side | WARN
+	if (modul(game->player.coord.x, object->coord.x) <= object->car->w &&
 		inFault(game->player.coord.y, object->coord.y, object->car->h)) {
 		if (isFreePlace(object, cars, game->player.turn)) {
 			// If the player is pushing a car and there is nothing in the direction, move the car the same distance as the player is moving
@@ -275,16 +274,16 @@ bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* c
 		}
 		else {
 			// There is already a car in the direction, so player can’t push the current one
+			//object->coord.x -= game->player.turn * deltaTime * CAR_SPEED * (game->player.powerTime[1] > 0 ? 1.8 : 1.2); WARN
 			game->player.coord.x -= game->player.turn * deltaTime * CAR_SPEED * (game->player.powerTime[1] > 0 ? 1.8 : 1.2);
 
 		}
 		return false;
 	}
 	// If the player touches the car from above or below
-	if (modul(game->player.coord.y, object->coord.y) == object->car->h &&
+	if (modul(game->player.coord.y, object->coord.y) <= object->car->h &&
 		inFault(game->player.coord.x, object->coord.x, object->car->w))
 		return true;
-	
 	return false;
 }
 
@@ -299,10 +298,11 @@ bool isFreePlace(CarInfo* car, CarInfo* cars, int turn) {
 		// If I check the same car or got on an unspawned car
 		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x || cars[i].coord.x == 0) continue;
 		// If the car touches a vehicle with the left/right side
-		if (turn * (cars[i].coord.x - car->coord.x) == car->car->w &&
+		int distanceX = turn * (cars[i].coord.x - car->coord.x);
+		if (distanceX > 0 && distanceX <= car->car->w &&
 			inFault(car->coord.y, cars[i].coord.y, car->car->h))
 		{	
-			car->coord.x -= turn * 2; // WARN auto bounces a couple of pixels back
+			//car->coord.x -= turn * 2; // WARN auto bounces a couple of pixels back
 			return false;
 		}
 	}
@@ -315,7 +315,7 @@ double canAttack(CarInfo* car, Game* game, CarInfo* cars) {
 	if (inFault(game->player.coord.x, car->coord.x, car->car->w/2)) {
 		// Attacks only if the distance is not more than 2/3 of the screen
 		if (inFault(game->player.coord.y, car->coord.y, 2 * SCREEN_HEIGHT / 3)) {
-			if (canGo(car, cars, 1)) return 1;
+			if (game->player.coord.y - car->coord.y > 0 && canGo(car, cars, 1)) return 1;
 			if (canGo(car, cars, -1)) return -1;
 		}
 	}
@@ -334,7 +334,8 @@ bool canGo(CarInfo* car, CarInfo* cars, int direction) {
 		// If I check the same car or got on an unspawned car
 		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x || cars[i].coord.x == 0) continue;
 		// If the distance from the car to another car is less than 10 pixels
-		if (direction * (cars[i].coord.y - car->coord.y) <= car->car->h + 10 &&
+		int distanceY = direction * (cars[i].coord.y - car->coord.y);
+		if (distanceY > 0 && distanceY <= car->car->h + 10 &&
 			inFault(car->coord.x, cars[i].coord.x, car->car->w))
 			return false;
 	}

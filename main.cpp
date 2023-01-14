@@ -35,21 +35,19 @@ int main(int argc, char** argv) {
 		cars[i].car = sdl.cars[0];
 		cars[i].colorIndex = 0;
 	}
-	int quit = 0, frames = 0, roadMarkingPos = SCREEN_HEIGHT - 100;
-	double fpsTimer = 0, fps = 0;
+	int quit = 0;
 	welcomeMenu(&sdl, &bestResults, &game, cars, &quit);
-	int timeStart = game.time.startGame, timeEnd;
+	double fpsTimer = 0, fps = 0;
+	int timeStart = SDL_GetTicks(), timeEnd, frames = 0, roadMarkingPos = SCREEN_HEIGHT - 100;
 	while (!quit) {
 		// Fill window with green color;
 		if (!game.pause) SDL_FillRect(sdl.screen, NULL, SDL_MapRGB(sdl.screen->format, 107, 142, 35));
 		DrawDest(&game, &sdl, &roadMarkingPos);
-		// info text
 		
 		timeEnd = SDL_GetTicks();
 		game.time.delta = (timeEnd - timeStart) * 0.001;
 		timeStart = timeEnd;
 		if (!game.pause) {
-			printf("1");
 			changeTimers(&game);
 			game.totalDistance += game.time.delta - game.player.speed * game.time.delta;
 			// WARN - моэно поменять; дефолтно скорость 0, ибо авто не едет

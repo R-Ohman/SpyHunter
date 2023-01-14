@@ -25,6 +25,7 @@ void push_back(vector_t* v, Result val) {
 		reallocate(v, 2 * v->allocated_size);
 	v->ptr[v->count] = val;
 	v->count++;
+	printf("PUSHED, count = %d\n", v->count);
 }
 
 
