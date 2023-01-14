@@ -13,7 +13,7 @@
 
 #define SCREEN_WIDTH	1280
 #define SCREEN_HEIGHT	720
-#define GOD_MODE_TIME	1
+#define GOD_MODE_TIME	5
 #define ENEMIES			5
 #define CAR_SPEED		250
 #define DATE_FORMAT		"%d-%m-%Y_%H-%M-%S.dat"
@@ -23,6 +23,13 @@
 #define RES_PER_PAGE	3
 #define SORT_TYPE		1
 #define SPACING			40
+#define POWER_TIME		5
+
+
+struct Coord {
+	int x;
+	int y;
+};
 
 
 struct Game {
@@ -30,16 +37,9 @@ struct Game {
 		SDL_Surface* sprite;
 		int colorIndex;
 
-		struct Coord {
-			int x;
-			int y;
-		} coord;
-
-		struct {
-			// power котопую подобрал
-			SDL_Surface* sprite;
-			double time;
-		} power;
+		Coord coord;
+		// powerTime[0] - действие powerup_1 (стрельба), powerTime[1] - действие powerup_2 (скорость)
+		double powerTime[2];
 
 		int speed;
 		int turn;
@@ -64,19 +64,9 @@ struct Game {
 		double delta;
 		double scoreFreeze;
 		double killMessage;
-		double deadMessage;
 	} time;
-
-	// power, что можно подобрать
-	struct {
-		SDL_Surface* sprite;
-		struct {
-			int x;
-			int y;
-		} coord;
-		double time;
-	} power;
-
+	
+	Coord powerCoord[2];
 	double totalDistance;
 	double roadWidth;
 	double score;
@@ -86,10 +76,7 @@ struct Game {
 
 struct CarInfo {
 	SDL_Surface* car;
-	struct Coord {
-		int x;
-		int y;
-	} coord;
+	Coord coord;
 
 	double speed;
 	bool isEnemy;
@@ -111,6 +98,7 @@ struct SDL {
 	SDL_Surface* cars[6];
 	SDL_Surface* playerCars[6];
 	SDL_Surface* powerup[2];
+	SDL_Surface* liveIcon, *infinityIcon;
 	SDL_Texture* scrtex;
 	SDL_Window* window;
 	SDL_Renderer* renderer;
@@ -201,6 +189,9 @@ void SaveResults(vector_t* resultsList);
 void LoadResults(vector_t* resultsList);
 
 
+void getEvent(Game* game, CarInfo* cars, SDL* sdl, int* quit, int* time);
+
+
 void topResultsMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars);
 
 
@@ -261,7 +252,7 @@ int modul(int num);
 bool canGo(CarInfo* car, CarInfo* cars, int direction);
 
 
-bool canSpawn(Game* game, CarInfo* cars);
+bool canSpawn(Game* game, CarInfo* cars, SDL* sdl, const int powerIndex);
 
 
 void addBullet(Game* game, SDL* sdl);

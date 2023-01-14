@@ -20,19 +20,21 @@ int initGame(SDL* sdl) {
 	sdl->cars[3] = SDL_LoadBMP("./assets/car_lilac.bmp");
 	sdl->cars[4] = SDL_LoadBMP("./assets/car_red.bmp");
 	sdl->cars[5] = SDL_LoadBMP("./assets/car_destroyed.bmp");
+	sdl->liveIcon = SDL_LoadBMP("./assets/live.bmp");
+	sdl->infinityIcon = SDL_LoadBMP("./assets/infinity.bmp");
 
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
 		printf("SDL_Init error: %s\n", SDL_GetError());
 		return 1;
 	}
-	  SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
-	                                 &sdl->window, &sdl->renderer);
-	// SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer)
-	//if (SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer) != 0) {
-	//	SDL_Quit();
-	//	printf("SDL_CreateWindowAndRenderer error: %s\n", SDL_GetError());
-	//	return 1;
-	//};
+	//SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
+	//	&sdl->window, &sdl->renderer);
+	//SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer);
+	if (SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer) != 0) {
+		SDL_Quit();
+		printf("SDL_CreateWindowAndRenderer error: %s\n", SDL_GetError());
+		return 1;
+	};
 
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	SDL_RenderSetLogicalSize(sdl->renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -134,12 +136,16 @@ void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
 	int grey_dark = SDL_MapRGB(sdl->screen->format, 40, 40, 40);
 	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 - SCREEN_WIDTH / 40 - (int)game->roadWidth / 2, 0, SCREEN_WIDTH / 40, SCREEN_HEIGHT, grey_dark, grey_dark);
 	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 + (int)game->roadWidth / 2, 0, SCREEN_WIDTH / 40, SCREEN_HEIGHT, grey_dark, grey_dark);
-	if (game->player.speed != 0) {
-		*roadMarkingPos += (game->player.speed > 0 ? 4 * game->player.speed : (-7 * game->player.speed)) * game->time.delta * 100;
+
+	int coef = 2 * CAR_SPEED;
+	if (game->player.speed == -1) {
+		coef *= 1.5;
 	}
-	else {
-		*roadMarkingPos += game->time.delta * 2 * CAR_SPEED;
+	else if (game->player.speed == -2) {
+		coef *= 2;
 	}
+	*roadMarkingPos += coef * game->time.delta * !game->pause;
+	
 	if (*roadMarkingPos > SCREEN_HEIGHT + SCREEN_HEIGHT / 3) *roadMarkingPos -= SCREEN_HEIGHT / 3;
 	// Draw road
 	int tmpPos = *roadMarkingPos;
@@ -158,14 +164,15 @@ void DrawRoadRectangle(SDL_Surface* screen, int y) {
 
 void DrawHeader(SDL_Surface* screen, Game game, SDL sdl, double fps) {
 	char text[128];
-	int czerwony = SDL_MapRGB(sdl.screen->format, 0xFF, 0x00, 0x00);
-	int niebieski = SDL_MapRGB(sdl.screen->format, 0x11, 0x11, 0xCC);
-	DrawRectangle(sdl.screen, 4, 4, SCREEN_WIDTH - 8, 36, czerwony, niebieski);
 	sprintf(text, "Ruslan Rabadanov 196634");
-	DrawString(sdl.screen, sdl.screen->w / 2 - strlen(text) * 8 / 2, 10, text, sdl.charset);
-	sprintf(text, "Czas trwania = %.1lf s  %.0lf klatek / s\tScore: %.0f", game.time.total, fps, game.score);
-	DrawString(sdl.screen, sdl.screen->w / 2 - strlen(text) * 8 / 2, 26, text, sdl.charset);
+	DrawString(sdl.screen, SPACING, 10, text, sdl.charset);
+	sprintf(text, "Czas trwania = %.1lf s  %.0lf klatek / s Score: %.0f", game.time.total, fps, game.score);
+	DrawString(sdl.screen, SPACING, SPACING, text, sdl.charset);
 
+	// Hearts (infinity) icons are always displayed at the center of the screen
+	for (int i = 0; i < game.player.lives; i++) {
+		DrawSurface(sdl.screen, game.time.total > GOD_MODE_TIME ? sdl.liveIcon : sdl.infinityIcon, (SCREEN_WIDTH / 2 - (game.player.lives - 1) * (game.time.total > GOD_MODE_TIME ? sdl.liveIcon->w : sdl.infinityIcon->w) / 2) + SPACING * i, SPACING / 2);
+	}
 	DrawCommunicates(screen, game, sdl);
 	DrawMenu(sdl);
 };
@@ -191,31 +198,34 @@ void DrawMenu(SDL sdl) {
 
 void DrawCommunicates(SDL_Surface* screen, Game game, SDL sdl) {
 	char text[128];
-	if (game.time.deadMessage > 0) {
-		sprintf(text, "You dead! New game..., %.1f", game.time.deadMessage);
-		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2, text, sdl.charset);
-	}
-	else if (game.time.scoreFreeze) {
+
+	if (game.time.scoreFreeze) {
 		sprintf(text, "Score is freezed on %.1f sec", game.time.scoreFreeze);
-		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2, text, sdl.charset);
+		DrawString(sdl.screen, SCREEN_WIDTH / 2 - strlen(text) * 4, SPACING, text, sdl.charset);
 	}
 	else if (game.time.killMessage > 0) {
 		sprintf(text, "KILL! You get 1000 points!");
-		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2, text, sdl.charset);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT - 3 * SPACING, text, sdl.charset);
 	}
-	if (game.player.lives) {
-		if (game.time.total > GOD_MODE_TIME)
-			sprintf(text, "You have %d lives!", game.player.lives);
-		else sprintf(text, "You have infinite lives until %.1f sec", GOD_MODE_TIME - game.time.total);
-		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2 - 20, text, sdl.charset);
+	if (game.player.lives && game.time.total < GOD_MODE_TIME) {
+
+		sprintf(text, "You have infinite lives until %.1f sec", GOD_MODE_TIME - game.time.total);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT - SPACING, text, sdl.charset);
+		sprintf(text, "%.1fs", GOD_MODE_TIME - game.time.total);
+		DrawString(sdl.screen, SCREEN_WIDTH / 2 - strlen(text) * 4, SPACING, text, sdl.charset);
+		DrawString(sdl.screen, game.player.coord.x - strlen(text) * 4, game.player.coord.y + game.player.sprite->h / 2, text, sdl.charset);
 	}
-	if (game.player.power.time > 0) {
-		sprintf(text, "You got weapon until %.1f sec", game.player.power.time);
-		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2 - 40, text, sdl.charset);
+	if (game.player.powerTime[0] > 0) {
+		sprintf(text, "You got weapon until %.1f sec", game.player.powerTime[0]);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT - 3 * SPACING, text, sdl.charset);
+	}
+	if (game.player.powerTime[1] > 0) {
+		sprintf(text, "You have extra speed until %.1f sec", game.player.powerTime[1]);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT - 2 * SPACING, text, sdl.charset);
 	}
 	if (game.pause) {
 		sprintf(text, "Game paused!");
-		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2 - 60, text, sdl.charset);
+		DrawString(sdl.screen, SPACING, SCREEN_HEIGHT / 2 - SPACING, text, sdl.charset);
 	}
 };
 
@@ -307,13 +317,48 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 			// ≈сли уничтоженное, то слетает с дороги быстрее
 			// ≈сли пауза - умножаем на 0 -> не двигаемс€
 			cars[i].speed = (isDestroyed(&cars[i], sdl, game) ? 2 : 1) * (!game->pause) * CAR_SPEED;
-			double attackDirection = canAttack(&cars[i], game, cars);
-			if (cars[i].isEnemy && attackDirection) {
-				// canAttack определ€ет в какую сторону поедет актаковать
-				cars[i].coord.y += attackDirection * cars[i].speed * game->time.delta;
+			int attackDirection = canAttack(&cars[i], game, cars);
+			if (cars[i].isEnemy && attackDirection != 0) {
+				// canAttack определ€ет в какую сторону поедет актаковать | 1 - вниз, -1 - вверх
+				double coef = attackDirection;
+				printf("Coef before = %.0f\n", coef);
+				if (attackDirection > 0) {
+					if (game->player.speed == 2) {
+						coef *= 1.5;
+					}
+					else if (game->player.speed == -2) {
+						coef *= 2;
+					}
+					else {
+						coef *= 1.8;
+					}
+				}
+				else {
+					if (game->player.speed == 2) {
+						coef *= 0.1;
+					}
+					else if (game->player.speed == -2) {
+						coef *= 0.1;
+					}
+					else if (game->player.speed == -1 || game->player.speed == 1) {
+						coef *= 0.1;
+					}
+					else {
+						coef *= 0.1;
+					}
+				}
+				cars[i].coord.y += coef * cars[i].speed * game->time.delta;
+				printf("Coef = %.1f\n", coef);
 			}
 			else {
-				cars[i].coord.y += game->time.delta * cars[i].speed;
+				double coef = cars[i].speed;
+				if (game->player.speed == -1) {
+					coef *= 1.5;
+				}
+				else if (game->player.speed == -2) {
+					coef *= 2;
+				}
+				cars[i].coord.y += game->time.delta * coef;
 			}
 		}
 	}
@@ -338,6 +383,10 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 				int iterCounter = 0;
 				do {
 					cars[i].coord.x = rand() % ((int)game->roadWidth) + LEFT_BORDER;
+					if (iterCounter > 30) {
+						cars[i].coord.x = 0;
+						return;
+					}
 				} while (!canGo(&cars[i], cars, 1)); // isFreePlace(&car, cars)
 				flag = false;
 				break;
@@ -368,34 +417,42 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 
 
 void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
-	if (game->power.sprite == NULL && int(game->totalDistance * 1000) % 429 == 0) {
+	if ((game->powerCoord[0].x == 0 && game->player.powerTime[0] == 0 || game->powerCoord[1].x == 0 && game->player.powerTime[1] == 0) && int(game->totalDistance * 1000) % 429 == 0) {
 		printf("DrawRandomPower if\n");
-		game->power.sprite = sdl->powerup[0];
-		game->power.coord.y = -game->power.sprite->h / 2;
+		int powerSpawnIndex;
+		if (game->powerCoord[0].x + game->powerCoord[1].x == 0)
+			powerSpawnIndex = rand() % 2;
+		else if (game->powerCoord[0].x == 0)
+			powerSpawnIndex = 0;
+		else
+			powerSpawnIndex = 1;
+		game->powerCoord[powerSpawnIndex].y = -sdl->powerup[powerSpawnIndex]->h / 2;
 		int counter = 0;
 		do {
-			game->power.coord.x = rand() % ((int)game->roadWidth) + LEFT_BORDER;
-		} while (++counter < 30 && !canSpawn(game, cars));
+			game->powerCoord[powerSpawnIndex].x = rand() % ((int)game->roadWidth) + LEFT_BORDER;
+			if (++counter > 30) {
+				game->powerCoord[powerSpawnIndex].x = 0;
+				return;
+			}
+		} while (!canSpawn(game, cars, sdl, powerSpawnIndex));
 	}
-	else if (game->power.sprite != NULL && game->player.power.sprite == NULL) {
-		// ≈сли бонус заспавнилс€, но у игрока нет бонусов
-		game->power.coord.y += game->time.delta * 250 * !game->pause;
-		DrawSurface(sdl->screen, game->power.sprite, game->power.coord.x, game->power.coord.y);
-		if (game->power.coord.y > SCREEN_HEIGHT + game->power.sprite->h / 2) {
-			game->power.sprite = NULL;
-			printf("Power sprite = NULL | 336\n");
-			return;
+	for (int i = 0; i <= 1; i++) {
+		if (game->powerCoord[i].x != 0 && game->player.powerTime[i] == 0) {
+			// ≈сли бонус заспавнилс€, но у игрока нет бонуса
+			game->powerCoord[i].y += game->time.delta * CAR_SPEED * !game->pause * game->player.speed == -2 ? 3 : 1;
+			DrawSurface(sdl->screen, sdl->powerup[i], game->powerCoord[i].x, game->powerCoord[i].y);
+			if (game->powerCoord[i].y > SCREEN_HEIGHT + sdl->powerup[i]->h / 2) {
+				game->powerCoord[i].x = 0;
+				printf("1. game->powerCoord[i] = 0\n");
+				return;
+			}
+			if (inFault(game->powerCoord[i].x, game->player.coord.x, game->player.sprite->w / 2 + sdl->powerup[i]->w / 2) &&
+				inFault(game->powerCoord[i].y, game->player.coord.y, game->player.sprite->h / 2 + sdl->powerup[i]->h / 2)) {
+				game->player.powerTime[i] = POWER_TIME;
+				game->powerCoord[i].x = 0;
+				printf("2. game->powerCoord[i] = 0\n");
+			}
 		}
-		if (inFault(game->power.coord.x, game->player.coord.x, game->player.sprite->w / 2 + game->power.sprite->w / 2) &&
-			inFault(game->power.coord.y, game->player.coord.y, game->player.sprite->h / 2 + game->power.sprite->h / 2)) {
-			game->player.power.sprite = game->power.sprite;
-			game->player.power.time = 5;
-			game->power.sprite = NULL;
-			printf("Power sprite = NULL | 344\n");
-		}
-	}
-	else if (game->player.power.time <= 0) {
-		game->player.power.sprite = NULL;
 	}
 }
 
@@ -406,15 +463,15 @@ void NewGame(Game* game, CarInfo* cars, SDL* sdl) {
 	game->player.colorIndex = 0;
 	game->player.lives = 1;
 	game->player.liveGain = 0;
-	game->player.power.sprite = NULL;
-	game->player.power.time = 0;
+	game->player.powerTime[0] = 0;
+	game->player.powerTime[1] = 0;
 	game->time.startGame = SDL_GetTicks();
 	game->time.killMessage = 0;
 	game->time.scoreFreeze = 0;
-	game->time.deadMessage = 0;
 	game->time.delta = 0;
 	game->time.total = 0;
-	game->power.sprite = NULL;
+	game->powerCoord[0] = { 0, 0 };
+	game->powerCoord[1] = { 0, 0 };
 	game->score = 0;
 	game->totalDistance = 0;
 	game->bullet.speed = 0;
@@ -448,9 +505,7 @@ void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
 		save.cars[i] = cars[i];
 		printf("save.cars[%d] = %p\n", i, &save.cars[i]);
 	}
-	if (game->player.power.sprite == NULL) save.game.player.power.sprite = sdl->powerup[0];
 	if (game->bullet.sprite == NULL) save.game.bullet.sprite = sdl->bullet;
-	if (game->power.sprite == NULL) save.game.power.sprite = sdl->powerup[0];
 	for (int i = 0; i < ENEMIES; i++) {
 		if (cars[i].car == NULL) save.cars[i].car = sdl->cars[0];
 	}
@@ -486,8 +541,6 @@ void LoadGame(Game* game, CarInfo* cars, SDL* sdl, char filePath[250]) {
 		cars[i] = save.cars[i];
 	}
 	game->player.sprite = sdl->playerCars[game->player.colorIndex];
-	game->player.power.sprite = sdl->powerup[0];
-	game->power.sprite = sdl->powerup[0];
 	for (int i = 0; i < ENEMIES; i++) {
 		cars[i].car = sdl->cars[cars[i].colorIndex];
 	}
@@ -620,6 +673,40 @@ int sortByTime(const void* a, const void* b) {
 }
 
 
+void getEvent(Game* game, CarInfo* cars, SDL* sdl, int* quit, int* time) {
+	while (SDL_PollEvent(&sdl->event)) {
+		switch (sdl->event.type) {
+		case SDL_KEYDOWN:
+			if (sdl->event.key.keysym.sym == SDLK_ESCAPE) *quit = 1;
+			else if (sdl->event.key.keysym.sym == SDLK_n) NewGame(game, cars, sdl);
+			else if (sdl->event.key.keysym.sym == SDLK_f) game->player.lives = 0;
+			else if (sdl->event.key.keysym.sym == SDLK_p) game->pause = !game->pause;
+			else if (sdl->event.key.keysym.sym == SDLK_s)  SaveGame(game, cars, sdl);
+			else if (sdl->event.key.keysym.sym == SDLK_l) {
+				ShowSavedGames(game, cars, sdl);
+				printf("Player pos: %d %d\n", game->player.coord.x, game->player.coord.y);
+				*time = SDL_GetTicks();
+			}
+			else if (sdl->event.key.keysym.sym == SDLK_UP) game->player.speed =  - (game->player.powerTime[1] ? 2 : 1);
+			else if (sdl->event.key.keysym.sym == SDLK_DOWN) game->player.speed = game->player.powerTime[1] ? 1.5 : 1;
+			else if (sdl->event.key.keysym.sym == SDLK_LEFT) game->player.turn = -(game->player.powerTime[1] ? 2 : 1);
+			else if (sdl->event.key.keysym.sym == SDLK_RIGHT) game->player.turn = game->player.powerTime[1] ? 2 : 1;
+			else if (sdl->event.key.keysym.sym == SDLK_SPACE && !game->pause) addBullet(game, sdl);
+			break;
+		case SDL_KEYUP:
+			if (sdl->event.key.keysym.sym == SDLK_UP) game->player.speed = 0;
+			else if (sdl->event.key.keysym.sym == SDLK_DOWN) game->player.speed = 0;
+			else if (sdl->event.key.keysym.sym == SDLK_LEFT) game->player.turn = 0;
+			else if (sdl->event.key.keysym.sym == SDLK_RIGHT) game->player.turn = 0;
+			break;
+		case SDL_QUIT:
+			*quit = 1;
+			break;
+		};
+	};
+}
+
+
 void topResultsMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars) {
 	// fill green color
 	static int page = 0;
@@ -632,9 +719,9 @@ void topResultsMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars) 
 	int i;
 	for (i = page * RES_PER_PAGE; i < (page + 1) * RES_PER_PAGE && i < resultsList->count; i++) {
 		sprintf(text, "%d. Score: %d", i + 1, resultsList->ptr[i].score);
-		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 50, SCREEN_HEIGHT / 4 + 2* SPACING + 20 * (i - page * RES_PER_PAGE), text, sdl->charset);
+		DrawString(sdl->screen, SCREEN_WIDTH / 3 + 50, SCREEN_HEIGHT / 4 + 2 * SPACING + 20 * (i - page * RES_PER_PAGE), text, sdl->charset);
 		sprintf(text, "Time: %.1f s", resultsList->ptr[i].time);
-		DrawString(sdl->screen, SCREEN_WIDTH / 2 + 50, SCREEN_HEIGHT / 4 + 2* SPACING + 20 * (i - page * RES_PER_PAGE), text, sdl->charset);
+		DrawString(sdl->screen, SCREEN_WIDTH / 2 + 50, SCREEN_HEIGHT / 4 + 2 * SPACING + 20 * (i - page * RES_PER_PAGE), text, sdl->charset);
 	}
 	sprintf(text, "\032/\033 - Previous/Next page");
 	DrawString(sdl->screen, 2 * SCREEN_WIDTH / 3 - strlen(text) * 8 - SPACING, 3 * SCREEN_HEIGHT / 4 - SPACING, text, sdl->charset);
@@ -657,7 +744,7 @@ void welcomeMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars, int
 		"ESC - Exit"
 	};
 	for (int i = 0; i < 4; i++) {
-		DrawString(sdl->screen, SCREEN_WIDTH / 2 - strlen(text[i]) * 4, SCREEN_HEIGHT / 4 + SPACING * (i+1), text[i], sdl->charset);
+		DrawString(sdl->screen, SCREEN_WIDTH / 2 - strlen(text[i]) * 4, SCREEN_HEIGHT / 4 + SPACING * (i + 1), text[i], sdl->charset);
 	}
 	if (resultsList->count > 0) {
 		sprintf(*text, "P - Best results by points");
@@ -743,8 +830,11 @@ void changeTimers(Game* game) {
 	if (game->time.scoreFreeze > 0) game->time.scoreFreeze -= game->time.delta;
 	if (game->time.scoreFreeze < 0) game->time.scoreFreeze = 0;
 	if (game->time.killMessage > 0) game->time.killMessage -= game->time.delta;
-	if (game->time.deadMessage > 0) game->time.deadMessage -= game->time.delta;
-	if (game->player.power.time > 0) game->player.power.time -= game->time.delta;
+	for (int i = 0; i <= 1; i++) {
+		if (game->player.powerTime[i] > 0) game->player.powerTime[i] -= game->time.delta;
+		if (game->player.powerTime[i] < 0) game->player.powerTime[i] = 0;
+	}
+	if (game->time.killMessage > 0) game->time.killMessage -= game->time.delta;
 	if ((int)game->time.total % 30 > 17 && (int)game->time.total < 20) game->roadWidth -= game->time.delta * 70;
 	else if ((int)game->time.total % 30 > 2 && (int)game->time.total % 30 < 5) game->roadWidth += game->time.delta * 70;
 	else if ((int)game->time.total % 30 > 10 && (int)game->time.total % 30 < 4) game->roadWidth += game->time.delta * 30;
@@ -888,11 +978,11 @@ double canAttack(CarInfo* car, Game* game, CarInfo* cars) {
 		// CHANGE | SCREEN_HEIGHT/2
 		if (inFault(game->player.coord.y, car->coord.y, SCREEN_HEIGHT) && game->player.coord.y - car->coord.y > car->car->h + 30) {
 			// ѕри атаке сверху тормозит за 30 пикселей от мен€
-			if (canGo(car, cars, 1)) return 1.8;
+			if (canGo(car, cars, 1)) return 1;
 		}
 		else if (inFault(game->player.coord.y, car->coord.y, SCREEN_HEIGHT) && game->player.coord.y - car->coord.y < -car->car->h - 10) {
 			// ѕри атаке тормозит за 10 пикселей от мен€ CHANGE
-			if (canGo(car, cars, -1)) return -0.6;
+			if (canGo(car, cars, -1)) return -1;
 		}
 	}
 	return 0;
@@ -966,12 +1056,12 @@ bool canGo(CarInfo* car, CarInfo* cars, int direction) {
 }
 
 
-bool canSpawn(Game* game, CarInfo* cars) {
+bool canSpawn(Game* game, CarInfo* cars, SDL* sdl, const int powerIndex) {
 	int deltaY;
 	for (int i = 0; i < ENEMIES; i++) {
 		if (cars[i].coord.x == 0) continue;
-		deltaY = cars[i].coord.y - game->power.coord.y;
-		if (deltaY > 0 && deltaY < cars[i].car->h / 2 + game->power.sprite->h / 2 + 10) {
+		deltaY = cars[i].coord.y - game->powerCoord[powerIndex].y;
+		if (deltaY > 0 && deltaY < cars[i].car->h / 2 + sdl->powerup[powerIndex]->h / 2 + 10) {
 			return false;
 		}
 	}
@@ -984,7 +1074,7 @@ void addBullet(Game* game, SDL* sdl) {
 	game->bullet.sprite = sdl->bullet;
 	game->bullet.coord.x = game->player.coord.x;
 	game->bullet.coord.y = game->player.coord.y - 30;
-	if (game->player.power.time > 0) game->bullet.coord.y2 = game->player.coord.y + 30;
+	if (game->player.powerTime[0] > 0) game->bullet.coord.y2 = game->player.coord.y + 30;
 	else game->bullet.coord.y2 = SCREEN_HEIGHT + 200;
 	game->bullet.speed = 500;
 }

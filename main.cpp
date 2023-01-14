@@ -70,7 +70,6 @@ int main(int argc, char** argv) {
 			if (DrawPlayer(&game, &sdl)) {
 				AddResult(&game, &bestResults, &sdl);
 				welcomeMenu(&sdl, &bestResults, &game, cars, &quit);
-				game.time.deadMessage = 2;
 			}
 		//DrawSurface(sdl.screen, game.player.player, game.player.coord.x, game.player.coord.y);
 		DrawHeader(sdl.screen, game, sdl, fps);
@@ -85,36 +84,7 @@ int main(int argc, char** argv) {
 		RenderSurfaces(&sdl);
 		
 		// handling of events (if there were any)
-		while (SDL_PollEvent(&sdl.event)) {
-			switch (sdl.event.type) {
-			case SDL_KEYDOWN:
-				if (sdl.event.key.keysym.sym == SDLK_ESCAPE) quit = 1;
-				else if (sdl.event.key.keysym.sym == SDLK_n) NewGame(&game, cars, &sdl);
-				else if (sdl.event.key.keysym.sym == SDLK_f) game.player.lives = 0;
-				else if (sdl.event.key.keysym.sym == SDLK_p) game.pause = !game.pause;
-				else if (sdl.event.key.keysym.sym == SDLK_s)  SaveGame(&game, cars, &sdl);
-				else if (sdl.event.key.keysym.sym == SDLK_l) {
-					ShowSavedGames(&game, cars, &sdl);
-					printf("Player pos: %d %d\n", game.player.coord.x, game.player.coord.y);
-					timeStart = SDL_GetTicks();
-				}
-				else if (sdl.event.key.keysym.sym == SDLK_UP) game.player.speed = -1;
-				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.player.speed = 1;
-				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.player.turn = -1;
-				else if (sdl.event.key.keysym.sym == SDLK_RIGHT) game.player.turn = 1;
-				else if (sdl.event.key.keysym.sym == SDLK_SPACE) addBullet(&game, &sdl);
-				break;
-			case SDL_KEYUP:
-				if (sdl.event.key.keysym.sym == SDLK_UP) game.player.speed = 0;
-				else if (sdl.event.key.keysym.sym == SDLK_DOWN) game.player.speed = 0;
-				else if (sdl.event.key.keysym.sym == SDLK_LEFT) game.player.turn = 0;
-				else if (sdl.event.key.keysym.sym == SDLK_RIGHT) game.player.turn = 0;
-				break;
-			case SDL_QUIT:
-				quit = 1;
-				break;
-			};
-		};
+		getEvent(&game, cars, &sdl, &quit, &timeStart);
 		frames++;
 	};
 
