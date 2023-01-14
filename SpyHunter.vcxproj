@@ -19,16 +19,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="definitions.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="vector.cpp" />
     <ClCompile Include="SpyHunter.cpp" />
+    <ClCompile Include="appearance.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="cs8x8.bmp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="definitions.h" />
     <ClInclude Include="SpyHunter.h" />
     <ClInclude Include="vector.h" />
+    <ClInclude Include="appearance.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

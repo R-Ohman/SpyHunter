@@ -1,25 +1,24 @@
 #define _USE_MATH_DEFINES
 #include "SpyHunter.h"
+#include "appearance.h"
 #define SECONDS_BETWEEN_REFRESH 0.5
 #define REFRESH_RATE 1/SECONDS_BETWEEN_REFRESH
 
 /*
-ПЛАН НА 10.01
-- пересмотреть функции, убрать все ненужное
+ПЛАН НА 15.01
+- пересмотреть функции, упростить их
+- дописать комментарии
+- найти ошибка и исправить их
+- сделать уведомление когда человек сохраняет файл во время игры
+- найти уязвимости в памяти, оптимизировать игру (заменить рисование прямоугольника на встроенную функцию)
 
-БАГИ:
-
-Изменить:
-
-
-Недочеты:
+Пофиксить:
 - при паузе пуля продолжает лететь и может убить авто
 
 
 Проверить:
-- пофиксить спавн PowerUp'а
-- при сбитии вражеского авто, которое уперлось (снизу) в другое авто, оно отодвигается не в ту сторону
-- когда 2 атакующих авто прилегают друг к другу, они не атакуют
+- спавн PowerUp'ов / авто
+- автомобили трутся друг на друга
 */
 
 
@@ -50,18 +49,18 @@ int main(int argc, char** argv) {
 		game.time.delta = (timeEnd - timeStart) * 0.001;
 		timeStart = timeEnd;
 		if (!game.pause) {
-			
+			printf("1");
 			changeTimers(&game);
 			game.totalDistance += game.time.delta - game.player.speed * game.time.delta;
 			// WARN - моэно поменять; дефолтно скорость 0, ибо авто не едет
 
 			game.player.coord.y += (game.player.speed > 0 ? 400 : 100) * game.time.delta * game.player.speed;
 			fixCoordY(&game.player.coord.y);
-			game.player.coord.x += game.player.turn * game.time.delta * 300;
+			game.player.coord.x += game.player.turn * game.time.delta * CAR_SPEED * (game.player.powerTime[1] > 0 ? 1.8 : 1.2);
 			
 			// ADD SCORE
 			if (onTheRoad(&game.player.coord.x, &game) && !game.time.scoreFreeze)
-				game.score += (game.player.speed < 0 ? 50 : 0 + 50) * game.time.delta;
+				game.score += (game.player.speed < 0 ? 50 : 0 + 50) * game.time.delta * (game.player.powerTime[1] > 0 ? 3 : 1);
 		}
 			DrawBullet(cars, &game, &sdl);
 			DrawRandomPower(cars, &game, &sdl);
