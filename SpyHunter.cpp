@@ -10,6 +10,7 @@
 int DrawPlayer(Game* game, SDL* sdl) {
 	if (game->player.lives < 1) 
 		return 1;
+	// Give a live for each 5000 score
 	if (game->player.liveGain < (int)game->score / 5000) {
 		game->player.lives++;
 		game->player.liveGain++;
@@ -49,9 +50,9 @@ void DrawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 			DrawSurface(sdl->screen, sdl->bullet, game->bullet.coord.x, game->bullet.coord.y2);
 			result[1] = carIsKilled(game, cars, sdl, game->bullet.coord.y2);
 		}
-		// If the bullet killed another car, take it out of the screen
 		for (int i = 0; i <= 1; i++) {
 			if (result[i]) {
+				// If the bullet killed another car, take it out of the screen
 				if (i == 0) game->bullet.coord.x = -200;
 				else game->bullet.coord.y2 = SCREEN_HEIGHT + 200;
 				switch (result[i]) {
@@ -105,6 +106,7 @@ void spawnRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 		}
 }
 
+
 // Moves cars along the Y axis
 void moveRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 	for (int i = 0; i < ENEMIES; i++) {
@@ -141,7 +143,7 @@ void DrawRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 	for (int i = 0; i < ENEMIES; i++) {
 		if (cars[i].coord.x != 0) {
 			// Checks if the given player's car is pushing, if not, draws the car
-			if (touchObject(game, &cars[i], game->time.delta, cars, sdl)) {
+			if (touchPlayer(game, &cars[i], game->time.delta, cars, sdl)) {
 				if (game->time.total > GOD_MODE_TIME) {
 					game->player.lives--;
 				}
@@ -182,7 +184,7 @@ void spawnRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 				game->powerCoord[powerSpawnIndex].x = 0;
 				return;
 			}
-		} while (!canSpawn(game, cars, sdl, powerSpawnIndex));
+		} while (!canSpawnPower(game, cars, sdl, powerSpawnIndex));
 	}
 }
 
@@ -233,14 +235,14 @@ void fixCoordY(double* vertical) {
 }
 
 
-int modul(double a, double b) {
+double module(double a, double b) {
 	return (a - b > 0) ? a - b : b - a;
 }
 
 
-bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* cars, SDL* sdl) {
+bool touchPlayer(Game* game, CarInfo* object, const double deltaTime, CarInfo* cars, SDL* sdl) {
 	// If the player touches the car with the left or right side
-	if (modul(game->player.coord.x, object->coord.x) <= sdl->cars[0]->w &&
+	if (module(game->player.coord.x, object->coord.x) <= sdl->cars[0]->w &&
 		inFault(game->player.coord.y, object->coord.y, sdl->cars[0]->h - 1)) {
 		if (isFreePlace(object, cars, sdl, game->player.turn)) {
 			// If the player is pushing a car and there is nothing in the direction, move the car the same distance as the player is moving
@@ -251,16 +253,14 @@ bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* c
 				&& object->colorIndex != ENEMIES)
 			{
 				object->colorIndex = ENEMIES;
-				if (object->isEnemy) {
+				if (object->isEnemy)
 					if (!game->time.scoreFreeze) {
 						game->score += 1000;
 						game->time.killMessage = 2;
 						object->isEnemy = false;
 					}
-				}
-				else {
+				else
 					game->time.scoreFreeze += 3;
-				}
 			}
 		}
 		else {
@@ -271,7 +271,7 @@ bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* c
 		return false;
 	}
 	// If the player touches the car from above or below
-	if (modul(game->player.coord.y, object->coord.y) <= sdl->cars[0]->h &&
+	if (module(game->player.coord.y, object->coord.y) <= sdl->cars[0]->h &&
 		inFault(game->player.coord.x, object->coord.x, sdl->cars[0]->w - 1))
 		return true;
 	return false;
@@ -311,7 +311,7 @@ double canAttack(CarInfo* car, Game* game, CarInfo* cars, SDL* sdl) {
 
 
 bool inFault(int num1, int num2, int fault) {
-	return (modul(num1, num2) < fault) ? true : false;
+	return (module(num1, num2) < fault) ? true : false;
 }
 
 
@@ -322,7 +322,7 @@ bool canGo(CarInfo* car, CarInfo* cars, SDL* sdl, int direction) {
 		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x || cars[i].coord.x == 0) continue;
 		// If the distance from the car to another car is less than 10 pixels
 		int distanceY = direction * (cars[i].coord.y - car->coord.y);
-		if (distanceY > 0 && distanceY <= sdl->cars[0]->h + 10 &&
+		if (distanceY >= 0 && distanceY <= sdl->cars[0]->h + 10 &&
 			inFault(car->coord.x, cars[i].coord.x, sdl->cars[0]->w))
 			return false;
 	}
@@ -330,7 +330,7 @@ bool canGo(CarInfo* car, CarInfo* cars, SDL* sdl, int direction) {
 }
 
 
-bool canSpawn(Game* game, CarInfo* cars, SDL* sdl, const int powerIndex) {
+bool canSpawnPower(Game* game, CarInfo* cars, SDL* sdl, const int powerIndex) {
 	for (int i = 0; i < ENEMIES; i++) {
 		// Skip unspawned cars
 		if (cars[i].coord.x == 0) continue;
@@ -349,7 +349,7 @@ int carIsKilled(Game* game, CarInfo* cars, SDL* sdl, int y) {
 	// Return 0 - no one is killed, -1 - citizen is killed, 1 - enemy is killed
 	for (int i = 0; i < ENEMIES; i++) {
 		bool isEnemy = cars[i].isEnemy;
-		if (cars[i].coord.x != 0) {
+		if (cars[i].coord.x != 0)
 			// If a bullet touches an undestroyed car
 			if ((inFault(y, cars[i].coord.y, sdl->cars[0]->h / 2) &&
 				inFault(game->bullet.coord.x, cars[i].coord.x, sdl->cars[0]->w / 2))
@@ -358,7 +358,6 @@ int carIsKilled(Game* game, CarInfo* cars, SDL* sdl, int y) {
 				cars[i].isEnemy = false;
 				return isEnemy ? 1 : -1;
 			}
-		}
 	}
 	return 0;
 }

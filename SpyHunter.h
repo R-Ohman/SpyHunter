@@ -37,19 +37,19 @@ void fixCoordY(double* vertical);
 /* Checks if the player is touching the car.
   If it touches from the side - it tries to move the car,
   and if it touches from above or below - the player loses a life */
-bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* cars, SDL* sdl);
+bool touchPlayer(Game* game, CarInfo* object, const double deltaTime, CarInfo* cars, SDL* sdl);
 
 
 // Return true if car has a destroyed car sprite
 bool isDestroyed(CarInfo* car);
 
 
-// Checks if there is another vehicle in the direction of the car
+// Checks if there is another vehicle in the direction (left or right) of the car
 bool isFreePlace(CarInfo* car, CarInfo* cars, SDL* sdl, int turn);
 
 
-/* Returns 1 if the auto attacks down, -1 if it attacks up,
-   0 if it doesn't attack (is not in the same lane along the X axis as the player) */
+/* Returns 1 if the auto attacks down, -1 if it attacks up, 0 if it doesn't attack
+	(is not in the same lane along the X axis as the player or some car obstructs traffic) */
 double canAttack(CarInfo* car, Game* game, CarInfo* cars, SDL* sdl);
 
 
@@ -62,7 +62,7 @@ bool canGo(CarInfo* car, CarInfo* cars, SDL* sdl, int direction);
 
 
 // Returns false if there is a car within a radius of 5 pixels
-bool canSpawn(Game* game, CarInfo* cars, SDL* sdl, const int powerIndex);
+bool canSpawnPower(Game* game, CarInfo* cars, SDL* sdl, const int powerIndex);
 
 
 // Checks if the bullet killed the car. If yes, changes the sprite of the car

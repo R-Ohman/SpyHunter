@@ -37,17 +37,20 @@ int main(int argc, char** argv) {
 		if (DrawPlayer(&game, &sdl)) {
 			// The player has no lives left
 			AddResult(&game, &bestResults, &sdl);
+			printf("0\n");
 			welcomeMenu(&sdl, &bestResults, &game, cars, &quit);
+			printf("-1\n");
 		}
-		DrawInterface(game, &sdl);
-		RenderSurfaces(&sdl);
+		else {
+			DrawInterface(game, &sdl);
+			RenderSurfaces(&sdl);
 
-		// handling of events (if there were any)
-		getEvent(&game, cars, &sdl, &quit, &timeStart);
+			// handling of events (if there were any)
+			getEvent(&game, cars, &sdl, &quit, &timeStart);
+		}
 	};
-
 	SaveResults(&bestResults);
-	free(bestResults.ptr);
+	if (bestResults.ptr != NULL) free(bestResults.ptr);
 	FreeSurfaces(&sdl);
 	return 0;
 };
