@@ -7,7 +7,7 @@
 #define ENEMIES			5
 #define CAR_SPEED		250
 #define DATE_FORMAT		"%d-%m-%Y_%H-%M-%S.dat"
-#define OUT_ROAD		90
+#define OUT_ROAD		120
 #define RES_PER_PAGE	3
 #define SORT_TYPE		1
 #define SPACING			40
@@ -61,6 +61,7 @@ struct Game {
 	} time;
 
 	Coord powerCoord[2];
+	double saveMesTime;
 	double totalDistance;
 	double roadWidth;
 	double score;
@@ -88,6 +89,14 @@ struct SDL {
 	SDL_Texture* scrtex;
 	SDL_Window* window;
 	SDL_Renderer* renderer;
+	struct {
+		int greyLight;
+		int grey;
+		int greyDark;
+		int green;
+		int red;
+		int blue;
+	} color;
 };
 
 

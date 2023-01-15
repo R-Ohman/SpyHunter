@@ -24,6 +24,14 @@ void loadSprites(SDL* sdl) {
 	sdl->fireIcon = SDL_LoadBMP("./assets/fireSpeed.bmp");
 }
 
+
+void setColors(SDL* sdl) {
+	sdl->color.green = SDL_MapRGB(sdl->screen->format, 107, 142, 35);
+	sdl->color.grey = SDL_MapRGB(sdl->screen->format, 105, 105, 105);
+	sdl->color.greyDark = SDL_MapRGB(sdl->screen->format, 40, 40, 40);
+	sdl->color.greyLight = SDL_MapRGB(sdl->screen->format, 192, 192, 192);
+}
+
  
 int initGame(SDL* sdl) {
 	sdl->screen = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32,
@@ -34,9 +42,7 @@ int initGame(SDL* sdl) {
 		printf("SDL_Init error: %s\n", SDL_GetError());
 		return 1;
 	}
-	//SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
-	//	&sdl->window, &sdl->renderer);
-	//SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer);
+	// SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP, &sdl->window, &sdl->renderer);
 	if (SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdl->window, &sdl->renderer) != 0) {
 		SDL_Quit();
 		printf("SDL_CreateWindowAndRenderer error: %s\n", SDL_GetError());
@@ -60,6 +66,7 @@ int initGame(SDL* sdl) {
 	SDL_SetColorKey(sdl->charset, true, 0x000000);
 	// Loading sprites if there were no errors
 	loadSprites(sdl);
+	setColors(sdl);
 	return 0;
 }
 
@@ -70,6 +77,15 @@ bool inArray(int x, int y) {
 		return true;
 	}
 	return false;
+}
+
+
+bool isAllocated(char* ptr) {
+	if (ptr == NULL) {
+		printf("Memory allocation error.\n");
+		return false;
+	}
+	return true;
 }
 
 
@@ -134,7 +150,7 @@ void DrawString(SDL* sdl, int x, int y, const char* text) {
 void drawDialogWindow(SDL* sdl) {
 	SDL_FillRect(sdl->screen, NULL, SDL_MapRGB(sdl->screen->format, 107, 142, 35));
 	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 2,
-		SDL_MapRGB(sdl->screen->format, 192, 192, 192), SDL_MapRGB(sdl->screen->format, 40, 40, 40));
+		sdl->color.greyLight, SDL_MapRGB(sdl->screen->format, 40, 40, 40));
 }
 
 
@@ -146,12 +162,10 @@ void DrawRoadRectangle(SDL_Surface* screen, int y) {
 
 
 void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
-	// SDL_FillRect(sdl->screen, NULL, SDL_MapRGB(sdl->screen->format, 107, 142, 35));
-	int grey = SDL_MapRGB(sdl->screen->format, 105, 105, 105);
-	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 - (int)game->roadWidth / 2, 0, game->roadWidth, SCREEN_HEIGHT, grey, grey);
-	int grey_dark = SDL_MapRGB(sdl->screen->format, 40, 40, 40);
-	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 - SCREEN_WIDTH / 40 - (int)game->roadWidth / 2, 0, SCREEN_WIDTH / 40, SCREEN_HEIGHT, grey_dark, grey_dark);
-	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 + (int)game->roadWidth / 2, 0, SCREEN_WIDTH / 40, SCREEN_HEIGHT, grey_dark, grey_dark);
+	SDL_FillRect(sdl->screen, NULL, sdl->color.green);
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 - (int)game->roadWidth / 2, 0, game->roadWidth, SCREEN_HEIGHT, sdl->color.grey, sdl->color.grey);
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 - SCREEN_WIDTH / 40 - (int)game->roadWidth / 2, 0, SCREEN_WIDTH / 40, SCREEN_HEIGHT, sdl->color.greyDark, sdl->color.greyDark);
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 2 + (int)game->roadWidth / 2, 0, SCREEN_WIDTH / 40, SCREEN_HEIGHT, sdl->color.greyDark, sdl->color.greyDark);
 
 	int roadSpeed = 2 * CAR_SPEED;
 	if (game->player.speed == -1)
@@ -171,11 +185,12 @@ void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos) {
 
 
 // In the upper left part of the screen writes the author and information about the current game
-void DrawHeader(Game game, SDL* sdl, double fps) {
+void DrawHeader(Game game, SDL* sdl) {
 	char* text = (char*)malloc(128 * sizeof(char));
-	sprintf(text, "Ruslan Rabadanov 196634");
+	if (!isAllocated(text)) return;
+	sprintf(text, "Ruslan Rabadanov | 196634");
 	DrawString(sdl, SPACING, 10, text);
-	sprintf(text, "Czas trwania = %.1lf s  %.0lf klatek / s Score: %.0f", game.time.total, fps, game.score);
+	sprintf(text, "Time: %.1lf s  Score: %.0f", game.time.total, game.score);
 	DrawString(sdl, SPACING, SPACING, text);
 	free(text);
 	text = NULL;
@@ -204,8 +219,9 @@ void DrawMenu(SDL* sdl) {
 // Writes messages related to game events in the lower left of the screen
 void DrawCommunicates(Game game, SDL* sdl) {
 	char* text = (char*)malloc(128 * sizeof(char));
+	if (!isAllocated(text)) return;
 	if (game.time.scoreFreeze) {
-		sprintf(text, "Score is freezed on %.1f sec", game.time.scoreFreeze);
+		sprintf(text, "Score is freezed until %.1f sec", game.time.scoreFreeze);
 		DrawString(sdl, SCREEN_WIDTH / 2 - strlen(text) * 4, SPACING * 1.5, text);
 	}
 	else if (game.time.killMessage > 0) {
@@ -220,6 +236,10 @@ void DrawCommunicates(Game game, SDL* sdl) {
 		DrawString(sdl, SCREEN_WIDTH / 2 - strlen(text) * 4, SPACING, text);
 		DrawString(sdl, game.player.coord.x - strlen(text) * 4, game.player.coord.y + sdl->playerCars[0]->h / 2, text);
 	}
+	if (game.saveMesTime > 0) {
+		sprintf(text, "Game state has been successfully saved!");
+		DrawString(sdl, SPACING, SCREEN_HEIGHT - 4 * SPACING, text);
+	}
 	if (game.player.powerTime[0] > 0) {
 		sprintf(text, "You got weapon until %.1f sec", game.player.powerTime[0]);
 		DrawString(sdl, SPACING, SCREEN_HEIGHT - 3 * SPACING, text);
@@ -231,7 +251,7 @@ void DrawCommunicates(Game game, SDL* sdl) {
 	if (game.pause) {
 		// Gray line in the middle of the screen
 		DrawRectangle(sdl->screen, 0, SCREEN_HEIGHT/2 - SPACING, SCREEN_WIDTH, SPACING,
-			SDL_MapRGB(sdl->screen->format, 192, 192, 192), SDL_MapRGB(sdl->screen->format, 40, 40, 40));
+			sdl->color.greyLight, sdl->color.greyDark);
 		sprintf(text, "Game paused!");
 		DrawString(sdl, SCREEN_WIDTH/2 - strlen(text)*4, SCREEN_HEIGHT/2 - SPACING/2, text);
 	}
@@ -240,8 +260,8 @@ void DrawCommunicates(Game game, SDL* sdl) {
 };
 
 
-void DrawInterface(Game game, SDL* sdl, double fps) {
-	DrawHeader(game, sdl, fps);
+void DrawInterface(Game game, SDL* sdl) {
+	DrawHeader(game, sdl);
 	// Hearts icons (infinity icon) are always displayed at the center of the screen
 	for (int i = 0; i < game.player.lives; i++) {
 		int pos_x = (SCREEN_WIDTH / 2 - (game.player.lives - 1) * (game.time.total > GOD_MODE_TIME ? sdl->liveIcon->w : sdl->infinityIcon->w) / 2) + SPACING * i;
@@ -257,11 +277,9 @@ void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
 	time_t now = time(0);
 	tm* time = localtime(&now);
 	char* path = (char*)malloc(32 * sizeof(char));
-	if (path == NULL) {
-		printf("Memory allocation failed\n");
-		return;
-	}
-	strftime(path, 30, "saves/%d-%m-%Y_%H-%M-%S.dat", time);
+	if (!isAllocated(path)) return;
+	strcpy(path, "saves/");
+	strftime(path + 6, 30, DATE_FORMAT, time);
 	out = fopen(path, "wb");
 	if (out == NULL) {
 		// If the "saved" folder doesn't exist
@@ -286,6 +304,7 @@ void SaveGame(Game* game, CarInfo* cars, SDL* sdl) {
 		printf("Error while writing file.\n");
 		return;
 	}
+	game->saveMesTime = 3;
 	fclose(out);
 }
 
@@ -323,6 +342,7 @@ int LoadGame(Game* game, CarInfo* cars, SDL* sdl, char* filePath) {
 int ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl) {
 	OPENFILENAMEA ofn;
 	char* szFile = (char*)malloc(256 * sizeof(char));
+	if (!isAllocated(szFile)) return 0;
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = NULL;
@@ -351,13 +371,10 @@ int ShowSavedGames(Game* game, CarInfo* cars, SDL* sdl) {
 // Draws a dialog box in the center of the screen prompting you to save the game result
 void addResultMenu(SDL* sdl) {
 	char* text = (char*)malloc(128 * sizeof(char));
-	if (text == NULL) {
-		printf("Memory allocation error.\n");
-		return;
-	}
-	SDL_FillRect(sdl->screen, NULL, SDL_MapRGB(sdl->screen->format, 107, 142, 35));
-	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 2,
-		SDL_MapRGB(sdl->screen->format, 192, 192, 192), SDL_MapRGB(sdl->screen->format, 40, 40, 40));
+	if (!isAllocated(text)) return;
+	SDL_FillRect(sdl->screen, NULL, sdl->color.green);
+	DrawRectangle(sdl->screen, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 3,
+				SCREEN_HEIGHT / 2, sdl->color.greyLight, sdl->color.greyDark);
 	sprintf(text, "SPY HUNTER");
 	DrawString(sdl, SCREEN_WIDTH / 2 - strlen(text) * 4, SCREEN_HEIGHT / 4 + 30, text);
 	sprintf(text, "Add result to your list of best games?");
@@ -404,7 +421,7 @@ void SaveResults(vector_t* resultsList) {
 		}
 	}
 	for (int i = 0; i < resultsList->count; i++)
-		fprintf(out, "%f %d\n", resultsList->ptr[i].time, resultsList->ptr[i].score);
+		fprintf(out, "%lf %d ", resultsList->ptr[i].time, resultsList->ptr[i].score);
 	fclose(out);
 }
 
@@ -420,8 +437,7 @@ void LoadResults(vector_t* resultsList) {
 		}
 	}
 	Result result = { 0, 0 };
-	// FIX ME
-	while (fscanf(in, "%lf %d\n", &result.time, &result.score) == 2)
+	while (fscanf(in, "%lf %d ", &result.time, &result.score) == 2)
 		push_back(resultsList, result);
 	fclose(in);
 }
@@ -509,10 +525,7 @@ void getResultsMenuAction(int* page, SDL* sdl, vector_t* resultsList, const int 
 void topResultsMenu(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* cars) {
 	static int page = 0;
 	char* text = (char*)malloc(128 * sizeof(char));
-	if (text == NULL) {
-		printf("Memory allocation error.\n");
-		return;
-	}
+	if (!isAllocated(text)) return;
 	drawDialogWindow(sdl);
 	
 	sprintf(text, "BEST GAMES LIST");
@@ -562,11 +575,11 @@ void getWelcomeMenuAction(SDL* sdl, vector_t* resultsList, Game* game, CarInfo* 
 			welcomeMenu(sdl, resultsList, game, cars, quit);
 		break;
 	case 'P':
-		qsort(resultsList->ptr, resultsList->count, sizeof(struct Result), sortByScore);
+		if (resultsList->count > 1) qsort(resultsList->ptr, resultsList->count, sizeof(struct Result), sortByScore);
 		topResultsMenu(sdl, resultsList, game, cars);
 		break;
 	case 'T':
-		qsort(resultsList->ptr, resultsList->count, sizeof(struct Result), sortByTime);
+		if (resultsList->count > 1) qsort(resultsList->ptr, resultsList->count, sizeof(struct Result), sortByTime);
 		topResultsMenu(sdl, resultsList, game, cars);
 		break;
 	case 'Q':

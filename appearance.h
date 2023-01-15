@@ -15,7 +15,7 @@ void DrawDest(Game* game, SDL* sdl, int* roadMarkingPos);
 
 
 // Writes out all the necessary text information and draws icons
-void DrawInterface(Game game, SDL* sdl, double fps);
+void DrawInterface(Game game, SDL* sdl);
 
 
 // Save the state of the game in a file named as the current time

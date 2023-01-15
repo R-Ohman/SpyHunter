@@ -14,13 +14,11 @@ int DrawPlayer(Game* game, SDL* sdl) {
 		game->player.lives++;
 		game->player.liveGain++;
 	}
-	if (game->time.total > GOD_MODE_TIME) {
-		for (int i = 0; i < 5; i++) {
-			if (game->totalDistance > 100 * (i + 1)) {
+	// Change the skin of the player if he has a lot of lives
+	if (game->time.total > GOD_MODE_TIME)
+		for (int i = 0; i < 5; i++)
+			if (game->player.lives >= 3 * i)
 				game->player.colorIndex = i;
-			}
-		}
-	}
 	// Draw fire if the player is speeding up
 	if (game->player.powerTime[1] > 0) DrawSurface(sdl->screen, sdl->fireIcon, game->player.coord.x, game->player.coord.y + 65);
 	DrawSurface(sdl->screen, PLAYER_SPRITE, game->player.coord.x, game->player.coord.y);
@@ -75,7 +73,7 @@ void DrawBullet(CarInfo* cars, Game* game, SDL* sdl) {
 }
 
 
-/*	If the car is not spawned (x coordinate = 0), give it a random skin
+/*	If the car is not spawned (x coordinate = 0), give it a random sprite index
 	and a random position on the road */
 void spawnRandomCar(CarInfo* cars, Game* game, SDL* sdl) {
 		for (int i = 0; i < ENEMIES; i++) {
@@ -213,14 +211,15 @@ void DrawRandomPower(CarInfo* cars, Game* game, SDL* sdl) {
 }
 
 
-bool onTheRoad(double* horizontal, Game* game) {
-	if (*horizontal < LEFT_BORDER - OUT_ROAD) {
-		*horizontal = LEFT_BORDER - OUT_ROAD;
+// Checks if the "horizontal" value is between the left and right borders of the road
+// Takes a live if the player is far from the road
+bool onTheRoad(double* posX, Game* game, CarInfo* cars) {
+	if (*posX < LEFT_BORDER - OUT_ROAD || *posX > RIGHT_BORDER + OUT_ROAD) {
+		if (game->time.total > GOD_MODE_TIME) game->player.lives--;
+		SpawnPlayer(game, cars);
+		return false;
 	}
-	else if (*horizontal > RIGHT_BORDER + OUT_ROAD) {
-		*horizontal = RIGHT_BORDER + OUT_ROAD;
-	}
-	return (*horizontal < LEFT_BORDER || *horizontal > RIGHT_BORDER) ? false : true;
+	return (*posX < LEFT_BORDER || *posX > RIGHT_BORDER) ? false : true;
 }
 
 
@@ -240,13 +239,13 @@ int modul(double a, double b) {
 
 
 bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* cars, SDL* sdl) {
-	// If the player touches the car with the left or right side | WARN
+	// If the player touches the car with the left or right side
 	if (modul(game->player.coord.x, object->coord.x) <= sdl->cars[0]->w &&
 		inFault(game->player.coord.y, object->coord.y, sdl->cars[0]->h - 1)) {
 		if (isFreePlace(object, cars, sdl, game->player.turn)) {
 			// If the player is pushing a car and there is nothing in the direction, move the car the same distance as the player is moving
 			object->coord.x += game->player.turn * deltaTime * CAR_SPEED * (game->player.powerTime[1] > 0 ? 1.8 : 1.2);
-			// If the car is pushed out of the way, change the skin
+			// If the car is pushed out of the way, change the sprite index
 			if ((object->coord.x < LEFT_BORDER - sdl->cars[0]->w ||
 				object->coord.x > RIGHT_BORDER + sdl->cars[0]->w)
 				&& object->colorIndex != ENEMIES)
@@ -266,7 +265,6 @@ bool touchObject(Game* game, CarInfo* object, const double deltaTime, CarInfo* c
 		}
 		else {
 			// There is already a car in the direction, so player can’t push the current one
-			//object->coord.x -= game->player.turn * deltaTime * CAR_SPEED * (game->player.powerTime[1] > 0 ? 1.8 : 1.2); WARN
 			game->player.coord.x -= game->player.turn * deltaTime * CAR_SPEED * (game->player.powerTime[1] > 0 ? 1.8 : 1.2);
 
 		}
@@ -293,10 +291,7 @@ bool isFreePlace(CarInfo* car, CarInfo* cars, SDL* sdl, int turn) {
 		int distanceX = turn * (cars[i].coord.x - car->coord.x);
 		if (distanceX > 0 && distanceX <= sdl->cars[0]->w &&
 			inFault(car->coord.y, cars[i].coord.y, sdl->cars[0]->h))
-		{	
-			//car->coord.x -= turn * 2; // WARN auto bounces a couple of pixels back
 			return false;
-		}
 	}
 	return true;
 }
@@ -323,7 +318,7 @@ bool inFault(int num1, int num2, int fault) {
 bool canGo(CarInfo* car, CarInfo* cars, SDL* sdl, int direction) {
 	// direction: -1 -> top, 1 -> bottom
 	for (int i = 0; i < ENEMIES; i++) {
-		// If I check the same car or got on an unspawned car
+		// If check the same car or got on an unspawned car
 		if (cars[i].coord.y == car->coord.y && cars[i].coord.x == car->coord.x || cars[i].coord.x == 0) continue;
 		// If the distance from the car to another car is less than 10 pixels
 		int distanceY = direction * (cars[i].coord.y - car->coord.y);
@@ -369,17 +364,15 @@ int carIsKilled(Game* game, CarInfo* cars, SDL* sdl, int y) {
 }
 
 
-void movePlayerCar(Game* game) {
+void movePlayerCar(Game* game, CarInfo* cars) {
 	if (!game->pause) {
 		changeTimers(game);
 		game->totalDistance += game->time.delta - game->player.speed * game->time.delta;
-		// WARN - моэно поменять; дефолтно скорость 0, ибо авто не едет
 		game->player.coord.y += (game->player.speed > 0 ? 400 : 100) * game->time.delta * game->player.speed;
 		fixCoordY(&game->player.coord.y);
 		game->player.coord.x += game->player.turn * game->time.delta * CAR_SPEED * (game->player.powerTime[1] > 0 ? 1.8 : 1.2);
-
-		// ADD SCORE
-		if (onTheRoad(&game->player.coord.x, game) && !game->time.scoreFreeze)
+		
+		if (onTheRoad(&game->player.coord.x, game, cars) && !game->time.scoreFreeze)
 			game->score += (game->player.speed < 0 ? 50 : 0 + 50) * game->time.delta * (game->player.powerTime[1] > 0 ? 3 : 1);
 	}
 }

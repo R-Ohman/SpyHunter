@@ -30,10 +30,6 @@ void SpawnPlayer(Game* game, CarInfo* cars);
 bool inArray(int x, int y);
 
 
-// Checks if the "horizontal" value is between the left and right borders of the road
-bool onTheRoad(double* horizontal, Game* game);
-
-
 // Prevents the player from going above 90px and below the screen
 void fixCoordY(double* vertical);
 
@@ -73,6 +69,7 @@ bool canSpawn(Game* game, CarInfo* cars, SDL* sdl, const int powerIndex);
 int carIsKilled(Game* game, CarInfo* cars, SDL* sdl, int y);
 
 
-void movePlayerCar(Game* game);
+// Updates the timers. Changes the position of the player. Adds points if needed.
+void movePlayerCar(Game* game, CarInfo* cars);
 
 #endif

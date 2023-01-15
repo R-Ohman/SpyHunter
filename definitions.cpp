@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "definitions.h"
 
+
 void NewGame(Game* game, CarInfo* cars, SDL* sdl) {
 	SpawnPlayer(game, cars);
 	game->player.colorIndex = 0;
@@ -58,6 +59,7 @@ void DrawSurface(SDL_Surface* screen, SDL_Surface* sprite, int x, int y) {
 void changeTimers(Game* game) {
 	game->time.total += game->time.delta;
 	if (game->time.scoreFreeze > 0) game->time.scoreFreeze -= game->time.delta;
+	if (game->saveMesTime > 0) game->saveMesTime -= game->time.delta;
 	if (game->time.scoreFreeze < 0) game->time.scoreFreeze = 0;
 	if (game->time.killMessage > 0) game->time.killMessage -= game->time.delta;
 	for (int i = 0; i <= 1; i++) {
@@ -67,11 +69,11 @@ void changeTimers(Game* game) {
 	if (game->time.killMessage > 0) game->time.killMessage -= game->time.delta;
 	// Changes the width of the road
 	if (game->roadWidth > SCREEN_WIDTH / 4) {
-		if ((int)game->time.total % 60 > 51 && (int)game->time.total % 60 < 55) game->roadWidth -= game->time.delta * 70;
+		if ((int)game->time.total % 60 > 51 && (int)game->time.total % 60 < 55) game->roadWidth -= game->time.delta * 60;
 		if ((int)game->time.total % 40 > 21 && (int)game->time.total % 60 < 24) game->roadWidth -= game->time.delta * 30;
 	}
 	if (game->roadWidth < 3 * SCREEN_WIDTH / 4) {
-		if ((int)game->time.total % 60 > 6 && (int)game->time.total % 60 < 10) game->roadWidth += game->time.delta * 70;
+		if ((int)game->time.total % 60 > 6 && (int)game->time.total % 60 < 10) game->roadWidth += game->time.delta * 60;
 		if ((int)game->time.total % 60 > 36 && (int)game->time.total % 60 < 39) game->roadWidth += game->time.delta * 30;
 	}
 }
