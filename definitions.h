@@ -7,14 +7,11 @@
 #define ENEMIES			5
 #define CAR_SPEED		250
 #define DATE_FORMAT		"%d-%m-%Y_%H-%M-%S.dat"
-#define LEFT_BORDER		SCREEN_WIDTH / 2 - game->roadWidth/2
-#define RIGHT_BORDER	SCREEN_WIDTH / 2 + game->roadWidth/2
 #define OUT_ROAD		90
 #define RES_PER_PAGE	3
 #define SORT_TYPE		1
 #define SPACING			40
 #define POWER_TIME		5
-#define PLAYER_SPRITE	sdl->playerCars[game->player.colorIndex]
 
 
 #include<math.h>
@@ -46,7 +43,6 @@ struct Game {
 	} player;
 
 	struct {
-		SDL_Surface* sprite;
 		struct {
 			double x;
 			double y;
@@ -73,18 +69,10 @@ struct Game {
 
 
 struct CarInfo {
-	SDL_Surface* car;
 	Coord coord;
-
 	double speed;
 	bool isEnemy;
 	int colorIndex;
-};
-
-
-struct Save {
-	Game game;
-	CarInfo cars[5];
 };
 
 
@@ -96,10 +84,16 @@ struct SDL {
 	SDL_Surface* cars[6];
 	SDL_Surface* playerCars[5];
 	SDL_Surface* powerup[2];
-	SDL_Surface* liveIcon, * infinityIcon;
+	SDL_Surface* liveIcon, * infinityIcon, * fireIcon;
 	SDL_Texture* scrtex;
 	SDL_Window* window;
 	SDL_Renderer* renderer;
+};
+
+
+struct Save {
+	Game game;
+	CarInfo cars[5];
 };
 
 

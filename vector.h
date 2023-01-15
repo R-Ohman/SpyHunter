@@ -20,16 +20,13 @@ typedef struct {
 void init(vector_t* v);
 
 
-// Realokacja wektora *v, tak aby bufor miał pojemność reallocate_size.
+// Reallocate the *v vector so that the buffer has reallocate_size capacity.
 void reallocate(vector_t* v, int reallocate_size);
 
 
-// Umieszczenie wartości val jako nowego (końcowego) elementu wektora *v.
+// Placing 'val' as the new (final) element of the vector *v.
 void push_back(vector_t* v, Result val);
 
 
-// Pobranie i usunięcie wartości końcowego elementu wektora *v.
+// Getting and removing the value of the final element of the vector *v.
 Result pop_back(vector_t* v);
-
-
-void clear_vector(vector_t* v);

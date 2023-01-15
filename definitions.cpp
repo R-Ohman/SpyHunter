@@ -38,12 +38,10 @@ void SpawnPlayer(Game* game, CarInfo* cars) {
 
 void addBullet(Game* game, SDL* sdl) {
 	if (game->bullet.speed != 0) return;
-	game->bullet.sprite = sdl->bullet;
 	game->bullet.coord.x = game->player.coord.x;
 	game->bullet.coord.y = game->player.coord.y - 30;
 	if (game->player.powerTime[0] > 0) game->bullet.coord.y2 = game->player.coord.y + 30;
 	else game->bullet.coord.y2 = SCREEN_HEIGHT + 200;
-	game->bullet.speed = 2 * CAR_SPEED;
 }
 
 
@@ -67,12 +65,13 @@ void changeTimers(Game* game) {
 		if (game->player.powerTime[i] < 0) game->player.powerTime[i] = 0;
 	}
 	if (game->time.killMessage > 0) game->time.killMessage -= game->time.delta;
+	// Changes the width of the road
 	if (game->roadWidth > SCREEN_WIDTH / 4) {
-		if ((int)game->time.total % 30 > 17 && (int)game->time.total < 20) game->roadWidth -= game->time.delta * 70;
-		if ((int)game->time.total % 30 > 10 && (int)game->time.total % 30 < 14) game->roadWidth -= game->time.delta * 30;
+		if ((int)game->time.total % 60 > 51 && (int)game->time.total % 60 < 55) game->roadWidth -= game->time.delta * 70;
+		if ((int)game->time.total % 40 > 21 && (int)game->time.total % 60 < 24) game->roadWidth -= game->time.delta * 30;
 	}
 	if (game->roadWidth < 3 * SCREEN_WIDTH / 4) {
-		if ((int)game->time.total % 30 > 2 && (int)game->time.total % 30 < 5) game->roadWidth += game->time.delta * 70;
-		if ((int)game->time.total % 30 > 25 && (int)game->time.total % 30 < 29) game->roadWidth += game->time.delta * 30;
+		if ((int)game->time.total % 60 > 6 && (int)game->time.total % 60 < 10) game->roadWidth += game->time.delta * 70;
+		if ((int)game->time.total % 60 > 36 && (int)game->time.total % 60 < 39) game->roadWidth += game->time.delta * 30;
 	}
 }
