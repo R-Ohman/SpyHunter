@@ -12,6 +12,10 @@ SpyHunter is a desktop application based on the Atari game of the same name. The
 - Lives: The game provides a limited number of lives, and the game ends when all lives are depleted.
 - User Interface: The game includes an interface that allows users to start the game, view saved results from previous games (sorted by time or points), pause the game, and save or load the game status from a file on their computer.
 
+## Requirements
+
+SDL 2.0.10
+
 ## Gameplay
 
 ![SpyHunter Gameplay](gameplay.png)
